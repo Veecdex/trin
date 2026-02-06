@@ -1,0 +1,27 @@
+
+.moment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 18px;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.moment:hover {
+  background: #f8fafc;
+}
+
+.moment.active {
+  background: #f1f5f9;
+  font-weight: 500;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+}
+
