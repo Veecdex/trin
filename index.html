@@ -30,6 +30,21 @@
       }
     }
   </script>
+
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          app: ['Manrope', 'sans-serif'],
+        },
+      },
+    },
+  }
+</script>
 </head>
 
 <body class="bg-white text-slate-800">
@@ -189,7 +204,7 @@
       <!-- RIGHT: Filter Button -->
       <div class="bg-gray-100 rounded-2xl p-2 md:p-4 flex items-center gap-1 md:gap-2 text-sm md:text-base w-1/2 md:w-auto justify-center cursor-pointer">
         <i class="ri-filter-3-line text-indigo-500 text-base md:text-lg"></i>
-        <span class="font-semibold text-slate-900">Filter by price</span>
+        <span class="font-semibold text-slate-900">Filtering saves time</span>
       </div>
   
     </div>
