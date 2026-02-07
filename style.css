@@ -24,4 +24,29 @@
   height: 10px;
   border-radius: 9999px;
 }
+/* ===============================
+   BUY NOW BUTTON (OUTLINED)
+   =============================== */
 
+   .buy-btn {
+    width: 100%;
+    padding: 0.5rem 0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1.5px solid #1f2a44; /* moonblue / indigo */
+    color: moonblue;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  
+    /* Fit container bottom */
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+  
+  /* Hover */
+  .buy-btn:hover {
+    background-color: #1f2a44;
+    color: #ffffff;
+  
+  }
