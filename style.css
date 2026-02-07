@@ -1,4 +1,6 @@
-
+body{
+  font-family: "Nunito Sans", -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 .moment {
   display: flex;
   align-items: center;
