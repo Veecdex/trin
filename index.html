@@ -87,20 +87,25 @@
         <!-- ACTIONS -->
         <div class="flex items-center gap-2 shrink-0">
 
-          <button
-            class="w-10 h-10 flex items-center justify-center rounded-lg
-                   bg-slate-900 text-white hover:bg-moonblue transition"
-          >
-            <i class="ri-menu-3-line text-xl"></i>
-          </button>
+         <!-- MENU BUTTON -->
+         <button
+         onclick="openBanner()"
+         class="w-10 h-10 flex items-center justify-center rounded-lg
+                bg-slate-900 text-white hover:bg-moonblue transition"
+       >
+         <i class="ri-menu-3-line text-xl"></i>
+       </button>
+       
 
-          <button
-            class="relative w-10 h-10 flex items-center justify-center rounded-lg
-                   bg-slate-900 text-white hover:bg-moonblue transition"
-          >
-            <i class="ri-notification-3-line text-xl"></i>
-            <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+<!-- NOTIFICATION BUTTON -->
+<button
+id="notifBtn"
+class="relative w-10 h-10 flex items-center justify-center rounded-lg
+       bg-slate-900 text-white hover:bg-moonblue transition"
+>
+<i class="ri-notification-3-line text-xl"></i>
+<span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+</button>
 
           <button
             class="w-10 h-10 rounded-full overflow-hidden border border-slate-300
@@ -155,7 +160,7 @@
   
       <!-- BACKGROUND IMAGE -->
       <div
-        class="absolute inset-0 -z-10 bg-[url('bkg.jpeg')] 
+        class="absolute inset-0 -z-10 bg-[url('tbkg.png')] 
                bg-cover bg-center scale-105 blur-sm ">
       </div>
   
@@ -229,6 +234,80 @@
   
     </div>
   </section>
+<!-- MENU SLIDE PANEL -->
+<div
+  id="menuPanel"
+  class="fixed top-0 left-0 right-0 z-50
+         bg-white shadow-xl
+         rounded-b-3xl
+         transform -translate-y-full
+         transition-transform duration-500 ease-out"
+>
+ <!-- GIFTING BANNER -->
+<div
+id="giftBanner"
+class="fixed inset-x-0 top-0 z-50 bg-white border-b border-slate-200
+       shadow-lg transform -translate-y-full transition-transform duration-300 ease-out"
+>
+<div class="max-w-6xl mx-auto px-6 py-6 relative">
+
+  <!-- CLOSE ICON -->
+  <button
+    onclick="closeBanner()"
+    class="absolute top-4 right-6 w-9 h-9 flex items-center justify-center
+           rounded-full hover:bg-slate-100 transition"
+  >
+    <i class="ri-close-line text-2xl text-slate-600"></i>
+  </button>
+
+  <p class="text-sm text-slate-500 mb-4">
+    🎁 Beautiful gifting made simple
+  </p>
+
+  <div class="grid gap-4">
+    <a href="#" class="text-lg font-medium hover:text-moonblue transition">
+      🎁 Redeem eGift
+    </a>
+    <a href="#" class="text-lg font-medium hover:text-moonblue transition">
+      🏪 Become a Merchant
+    </a>
+    <a href="#" class="text-lg font-medium hover:text-moonblue transition">
+      💼 All Occasions
+    </a>
+  </div>
+
+</div>
+</div>
+
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div
+  id="notifPanel"
+  class="fixed right-6 top-16 z-50 w-80
+         bg-white rounded-2xl shadow-xl
+         opacity-0 pointer-events-none
+         transform translate-y-2
+         transition-all duration-300"
+>
+  <div class="p-4 border-b">
+    <p class="font-semibold text-slate-800">
+      Notifications
+    </p>
+  </div>
+
+  <div class="divide-y">
+    <div class="p-4 text-sm hover:bg-slate-50 transition">
+      🎉 New merchants added on Trinfelly
+    </div>
+    <div class="p-4 text-sm hover:bg-slate-50 transition">
+      🔔 Gift delivery system improved
+    </div>
+    <div class="p-4 text-sm hover:bg-slate-50 transition">
+      🚀 Redeem experience just got faster
+    </div>
+  </div>
+</div>
 
   <section class="max-w-7xl mx-auto px-4 py-8 md:py-12">
   

@@ -54,3 +54,39 @@ function showMessage() {
 showMessage();
 setInterval(showMessage, 6000);
 
+const notifBtn = document.getElementById("notifBtn");
+const notifPanel = document.getElementById("notifPanel");
+const menuPanel = document.getElementById("menuPanel");
+
+notifBtn.addEventListener("click", (e) => {
+  e.stopPropagation(); // Prevent document click from immediately closing
+  notifPanel.classList.toggle("opacity-0");
+  notifPanel.classList.toggle("pointer-events-none");
+  notifPanel.classList.toggle("translate-y-2");
+
+  // Close menu if open
+  if (!menuPanel.classList.contains("-translate-y-full")) {
+    menuPanel.classList.add("-translate-y-full");
+  }
+});
+
+// Click outside to close
+document.addEventListener("click", (e) => {
+  if (!notifPanel.classList.contains("opacity-0")) {
+    if (!notifPanel.contains(e.target) && !notifBtn.contains(e.target)) {
+      notifPanel.classList.add("opacity-0", "pointer-events-none", "translate-y-2");
+    }
+  }
+});
+
+
+  function openBanner() {
+    document.getElementById("giftBanner").classList.remove("-translate-y-full");
+  }
+
+  function closeBanner() {
+    document.getElementById("giftBanner").classList.add("-translate-y-full");
+  }
+
+
+
