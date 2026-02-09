@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trinfelly Merchant Agreement</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<body class="bg-slate-100 min-h-screen">
+
+<!-- HEADER -->
+<header class="bg-white border-b">
+  <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+   <div class="flex items-center gap-2">
+  <img 
+    src="logo.png" 
+    alt="Trinfelly Logo"
+    class="h-8 w-auto object-contain"
+  />
+</div>
+
+    <span class="text-sm text-slate-500">🔒 Secure Digital Agreement</span>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+  <!-- LEFT: DETAILS -->
+  <section class="bg-white rounded-2xl shadow-sm p-8">
+    <h2 class="text-lg font-semibold text-slate-800 mb-6">
+      Merchant Information
+    </h2>
+
+    <div class="space-y-5">
+      <input id="businessName" class="input" placeholder="Business Name" />
+      <input id="businessType" class="input" placeholder="Business Type (Restaurant, Fuel Station…)" />
+      <input id="address" class="input" placeholder="Business Address" />
+      <input id="repName" class="input" placeholder="Authorized Representative Name" />
+      <input id="repPosition" class="input" placeholder="Authorized Representative Position" />
+      <input id="email" class="input" placeholder="Business Email Address" />
+    </div>
+
+    <div class="mt-10 border-t pt-6">
+      <h3 class="font-medium text-slate-700 mb-2">Merchant Tools</h3>
+      <p class="text-sm text-slate-500">
+        Merchant wallet and gift redemption dashboard are currently under development
+        and will be activated upon platform launch.
+      </p>
+    </div>
+  </section>
+
+  <!-- RIGHT: AGREEMENT -->
+  <section class="bg-white rounded-2xl shadow-sm p-8 flex flex-col">
+
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">
+      Merchant Participation Agreement
+    </h2>
+
+    <!-- AGREEMENT PAPER -->
+    <div class="border rounded-xl bg-slate-50 p-6 text-sm text-slate-700 leading-relaxed overflow-y-auto h-[420px] shadow-inner">
+
+      <p class="font-semibold mb-4 text-center">
+        TRINFELLY MERCHANT PARTICIPATION AGREEMENT
+      </p>
+
+      <p class="mb-3">
+        This Merchant Participation Agreement (“Agreement”) is entered into between
+        <strong id="previewBusiness">[Business Name]</strong>, a
+        <strong id="previewType">[Business Type]</strong> business located at
+        <strong id="previewAddress">[Business Address]</strong>
+        (“Merchant”) and Trinfelly Technologies (“Trinfelly”).
+      </p>
+
+      <p class="mb-3">
+        Trinfelly operates a digital gifting platform that allows customers to purchase
+        electronic gift cards (“eGifts”) redeemable at participating merchant locations.
+      </p>
+
+      <p class="mb-3">
+        The Merchant agrees to accept and honor all valid Trinfelly eGifts presented by
+        customers in-store. Trinfelly shall apply a 5% service charge on the face value
+        of each redeemed eGift.
+      </p>
+
+      <p class="mb-3">
+        Settlement of redeemed gift values shall be processed after each business day
+        into the Merchant’s designated settlement account.
+      </p>
+
+      <p class="mb-3">
+        This Agreement is non-exclusive. Either party may terminate this Agreement by
+        providing prior written notice.
+      </p>
+      <p class="mb-3">
+        The Merchant grants Trinfelly a non-exclusive, royalty-free right to use the
+        Merchant’s business name, logo, and brand assets solely for marketing,
+        promotional, and platform-related purposes.
+      </p>
+      
+      <p class="mb-3">
+        This Agreement does not grant Trinfelly any ownership interest in the
+        Merchant’s business, brand, or intellectual property.
+      </p>
+      
+      <p class="mb-3">
+        This Agreement shall be governed by and construed in accordance with the laws
+        of the <strong>Federal Republic of Nigeria</strong>.
+      </p>
+
+      <p class="mt-6">
+        Authorized Representative:
+        <strong id="previewRep">[Representative Name]</strong>
+      </p>
+
+      <p>
+        Contact Email:
+        <strong id="previewEmail">[Email Address]</strong>
+      </p>
+
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="mt-6">
+      <p class="text-sm font-medium text-slate-700 mb-2">
+        Digital Signature
+      </p>
+
+      <div class="border rounded-xl bg-white p-3">
+        <canvas id="signaturePad" class="w-full h-32"></canvas>
+      </div>
+
+      <div class="flex justify-between mt-3">
+        <button id="clearSig" class="text-sm text-slate-500 hover:text-red-500">
+          Clear Signature
+        </button>
+        <span class="text-xs text-slate-400">
+          Draw signature with mouse or finger
+        </span>
+      </div>
+    </div>
+
+    <button
+    id="submitBtn"
+    disabled
+    onclick="generatePDF()"
+    class="mt-8 bg-indigo-600 text-white rounded-xl py-3 text-sm font-medium
+           opacity-50 cursor-not-allowed transition">
+    Submit & Download Agreement
+  </button>
+  
+
+
+  </section>
+
+</main>
+
+</body>
+
+<!-- STYLES -->
+<style>
+  .input {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    outline: none;
+  }
+  .input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99,102,241,.15);
+  }
+  canvas {
+    border-radius: 0.5rem;
+  }
+</style>
+
+<!-- LIVE AGREEMENT UPDATE -->
+<script>
+  const bind = (inputId, previewId) => {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    input.addEventListener("input", () => {
+      preview.textContent = input.value || preview.dataset.placeholder;
+    });
+  };
+
+  document.querySelectorAll("[id^=preview]").forEach(el => {
+    el.dataset.placeholder = el.textContent;
+  });
+
+  bind("businessName", "previewBusiness");
+  bind("businessType", "previewType");
+  bind("address", "previewAddress");
+  bind("repName", "previewRep");
+  bind("email", "previewEmail");
+</script>
+
+<!-- SIGNATURE PAD -->
+<script>
+  const canvas = document.getElementById("signaturePad");
+  const ctx = canvas.getContext("2d");
+  let drawing = false;
+
+  const resizeCanvas = () => {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+  };
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
+
+  canvas.addEventListener("mousedown", () => drawing = true);
+  canvas.addEventListener("mouseup", () => drawing = false);
+  canvas.addEventListener("mouseout", () => drawing = false);
+
+  canvas.addEventListener("mousemove", e => {
+    if (!drawing) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#111827";
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  });
+
+  document.getElementById("clearSig").onclick = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+  
+    // -------------------------
+    // DATA
+    // -------------------------
+    const businessName = document.getElementById("businessName").value || "________________";
+    const businessType = document.getElementById("businessType").value || "________________";
+    const address = document.getElementById("address").value || "________________";
+    const repName = document.getElementById("repName").value || "________________";
+    const repPosition = document.getElementById("repPosition").value || "________________";
+    const email = document.getElementById("email").value || "________________";
+  
+    const signatureCanvas = document.getElementById("signaturePad");
+    const signatureImage = signatureCanvas.toDataURL("image/png");
+  
+    // -------------------------
+    // LAYOUT CONSTANTS
+    // -------------------------
+    const marginX = 22;
+    const maxWidth = 166;
+    const lineHeight = 6;
+  
+    let y = 24;
+  
+    // -------------------------
+    // HEADER
+    // -------------------------
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("TRINFELLY", 105, y, { align: "center" });
+  
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(90);
+    doc.text("Merchant Participation Agreement", 105, y, { align: "center" });
+  
+    doc.setTextColor(0);
+    y += 16;
+  
+    // -------------------------
+    // BODY TEXT
+    // -------------------------
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+  
+    const agreementText = `
+   This Merchant Participation Agreement (“Agreement”) is entered into between ${businessName},
+  a ${businessType} business located at ${address} (“Merchant”) and Trinfelly Technologies (“Trinfelly”).
+  
+  Trinfelly operates a digital gifting platform that enables customers to purchase electronic
+  gift cards (“eGifts”) redeemable at participating merchant locations.
+  
+  The Merchant agrees to honor all valid Trinfelly eGifts presented in-store. Trinfelly shall apply
+  a 5% service charge on the face value of each redeemed eGift.
+  
+  Settlement of redeemed gift values shall be processed after each business day into the
+  Merchant’s designated settlement account.
+  
+  This Agreement is non-exclusive and may be terminated by either party with prior written notice.
+  
+  The Merchant grants Trinfelly a non-exclusive, royalty-free right to use the Merchant’s
+  business name, logo, and brand assets solely for marketing, promotional,
+  and platform-related purposes.
+  
+  This Agreement does not grant Trinfelly any ownership interest in the Merchant’s business,
+  brand, or intellectual property.
+  
+  This Agreement shall be governed by and construed in accordance with the laws of the
+  Federal Republic of Nigeria.
+    `;
+  
+    const bodyLines = doc.splitTextToSize(agreementText.trim(), maxWidth);
+    doc.text(bodyLines, marginX, y);
+  
+    y += bodyLines.length * lineHeight + 18;
+  
+    // -------------------------
+    // SIGNATURE SECTION
+    // -------------------------
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Authorized Representative", marginX, y);
+   
+    y += 10;
+  
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${repName} (${repPosition})`, marginX, y); 
+    y += 6;
+  
+    doc.text(`Email: ${email}`, marginX, y);
+    y += 14;
+  
+    doc.setFont("helvetica", "bold");
+    doc.text("Signature", marginX, y);
+  
+    // Signature image (no lines, clean placement)
+    if (signatureImage) {
+      doc.addImage(
+        signatureImage,
+        "PNG",
+        marginX,
+        y + 4,
+        65,
+        22
+      );
+    }
+  
+    y += 32;
+  
+    doc.setFont("helvetica", "normal");
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, marginX, y);
+  
+    // -------------------------
+    // FOOTER
+    // -------------------------
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(
+      "This document was digitally generated and signed via Trinfelly.",
+      105,
+      287,
+      { align: "center" }
+    );
+  
+    // -------------------------
+// WATERMARK
+// -------------------------
+const watermarkImage = new Image();
+watermarkImage.src = "data:image/jpeg;base64,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"; // replace with your logo path or URL
+watermarkImage.onload = () => {
+  // Draw watermark at center, light opacity
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setGState(new doc.GState({ opacity: 0.1 })); // light watermark
+  const imgWidth = 100; // adjust size as needed
+  const imgHeight = 100;
+  doc.addImage(
+    watermarkImage,
+    "PNG",
+    (pageWidth - imgWidth) / 2,
+    (pageHeight - imgHeight) / 2,
+    imgWidth,
+    imgHeight
+  );
+
+  // -------------------------
+  // DOWNLOAD
+  // -------------------------
+  doc.save(`Trinfelly_Merchant_Agreement_${businessName.replace(/\s+/g, "_")}.pdf`);
+};
+
+  }
+  </script>
+  
+<script>
+  let hasSignature = false;
+
+  const markSigned = () => {
+    hasSignature = true;
+    validateForm();
+  };
+
+  canvas.addEventListener("mousedown", markSigned);
+  canvas.addEventListener("touchstart", markSigned);
+
+  document.getElementById("clearSig").onclick = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSignature = false;
+    validateForm();
+  };
+</script>
+<script>
+  const fields = [
+    "businessName",
+    "businessType",
+    "address",
+    "repName",
+    "email"
+  ];
+
+  const submitBtn = document.getElementById("submitBtn");
+
+  const validateForm = () => {
+    const allFilled = fields.every(id => {
+      const el = document.getElementById(id);
+      return el.value.trim().length > 0;
+    });
+
+    if (allFilled && hasSignature) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
+      submitBtn.classList.add("hover:bg-indigo-700");
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.classList.add("opacity-50", "cursor-not-allowed");
+      submitBtn.classList.remove("hover:bg-indigo-700");
+    }
+  };
+
+  fields.forEach(id => {
+    document.getElementById(id).addEventListener("input", validateForm);
+  });
+</script>
+
+</html>
