@@ -129,7 +129,13 @@
       </p>
 
       <div class="border rounded-xl bg-white p-3">
-        <canvas id="signaturePad" class="w-full h-32 touch-none"></canvas>
+        <canvas
+        id="signaturePad"
+        class="w-full h-32 border rounded-xl bg-white"
+        style="touch-action: none;"
+      ></canvas>
+      
+      
       </div>
 
       <div class="flex justify-between mt-3">
@@ -447,10 +453,10 @@ watermarkImage.onload = () => {
   let drawing = false;
 
   function resizeCanvas() {
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const ratio = window.devicePixelRatio || 1;
     canvas.width = canvas.offsetWidth * ratio;
     canvas.height = canvas.offsetHeight * ratio;
-    ctx.scale(ratio, ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
@@ -462,53 +468,43 @@ watermarkImage.onload = () => {
 
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
-    if (e.touches) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
-    }
     return {
       x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      y: e.clientY - rect.top
     };
   }
 
-  function startDraw(e) {
-    e.preventDefault();
+  canvas.addEventListener("pointerdown", (e) => {
     drawing = true;
+    canvas.setPointerCapture(e.pointerId);
+
     const pos = getPos(e);
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
-  }
+  });
 
-  function draw(e) {
+  canvas.addEventListener("pointermove", (e) => {
     if (!drawing) return;
-    e.preventDefault();
+
     const pos = getPos(e);
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
-  }
+  });
 
-  function endDraw() {
+  canvas.addEventListener("pointerup", () => {
     drawing = false;
-  }
+  });
 
-  // Mouse events
-  canvas.addEventListener("mousedown", startDraw);
-  canvas.addEventListener("mousemove", draw);
-  canvas.addEventListener("mouseup", endDraw);
-  canvas.addEventListener("mouseleave", endDraw);
+  canvas.addEventListener("pointercancel", () => {
+    drawing = false;
+  });
 
-  // Touch events (mobile)
-  canvas.addEventListener("touchstart", startDraw, { passive: false });
-  canvas.addEventListener("touchmove", draw, { passive: false });
-  canvas.addEventListener("touchend", endDraw);
-
-  // Clear button
+  // Clear signature
   document.getElementById("clearSig").addEventListener("click", () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   });
 </script>
+
+
 
 </html>
