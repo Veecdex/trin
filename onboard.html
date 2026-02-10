@@ -122,37 +122,339 @@
 
     </div>
 
-    <!-- SIGNATURE -->
-    <div class="mt-6">
-      <p class="text-sm font-medium text-slate-700 mb-2">
-        Digital Signature
-      </p>
+    <!-- SIGNATURE (replace your previous block with this) -->
+<div class="mt-6">
+  <p class="text-sm font-medium text-slate-700 mb-2">Digital Signature</p>
 
-      <div class="border rounded-xl bg-white p-3">
-        <canvas
-        id="signaturePad"
-        class="w-full h-32 border rounded-xl bg-white"
-        style="touch-action: none;"
-      ></canvas>
-      
-      
-      </div>
+  <div class="border rounded-xl bg-white p-3">
+    <!-- visible small canvas (keeps your layout) -->
+    <canvas id="signaturePad" class="block w-full h-32"></canvas>
 
-      <div class="flex justify-between mt-3">
-        <button id="clearSig" class="text-sm text-slate-500 hover:text-red-500">
-          Clear Signature
-        </button>
-        <span class="text-xs text-slate-400">
-          Draw signature with mouse or finger
-        </span>
+    <!-- fullscreen signer modal (hidden by default) -->
+    <div id="signatureModal" aria-hidden="true"
+         style="position:fixed;inset:0;display:none;z-index:9999;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+      <div style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fff;">
+          <button id="sigCancel" style="background:none;border:none;font-size:16px;">Cancel</button>
+          <div style="font-weight:600">Sign (use finger or stylus)</div>
+          <button id="sigDone" style="background:none;border:none;font-size:16px;">Done</button>
+        </div>
+
+        <div style="flex:1;display:flex;background:#fff;align-items:center;justify-content:center;padding:8px;">
+          <canvas id="fullSignatureCanvas" style="width:100%;height:100%;touch-action:none;background:#fff;border-radius:6px;"></canvas>
+        </div>
+
+        <div style="display:flex;gap:12px;padding:12px;background:#fff;">
+          <button id="fullClear" style="flex:1;padding:10px;border-radius:8px;">Clear</button>
+          <button id="fullUndo" style="flex:1;padding:10px;border-radius:8px;">Undo</button>
+        </div>
       </div>
     </div>
+  </div>
+
+  <div class="flex justify-between mt-3">
+    <button id="clearSig" class="text-sm text-slate-500 hover:text-red-500">Clear Signature</button>
+    <span class="text-xs text-slate-400">Draw signature with mouse or finger</span>
+  </div>
+</div>
+
+<script>
+/*
+  Fullscreen & inline signature implementation.
+  - Uses Pointer Events.
+  - Fullscreen modal on touch devices (reliable).
+  - Desktop uses inline canvas.
+  - Saves final signature image into the visible small canvas so your PDF code can call signaturePad.toDataURL().
+*/
+function hasActualSignature() {
+  const canvas = document.getElementById("signaturePad");
+  const ctx = canvas.getContext("2d");
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+  // check if any pixel is not transparent
+  for (let i = 3; i < pixels.length; i += 4) {
+    if (pixels[i] !== 0) {
+      return true;
+    }
+  }
+  return false;
+}
+(function () {
+  // Elements
+  const smallCanvas = document.getElementById('signaturePad');
+  const clearBtn = document.getElementById('clearSig');
+
+  const modal = document.getElementById('signatureModal');
+  const fullCanvas = document.getElementById('fullSignatureCanvas');
+  const fullClear = document.getElementById('fullClear');
+  const fullUndo = document.getElementById('fullUndo');
+  const sigDone = document.getElementById('sigDone');
+  const sigCancel = document.getElementById('sigCancel');
+
+  // Detect touch-capable device
+  const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0;
+
+  // Drawing stacks (for undo) - only for fullscreen canvas
+  let fullHistory = [];
+
+  // Common helpers: resize canvas to match CSS size * DPR
+  function resizeToDisplaySize(canvas) {
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    const w = Math.round(rect.width * ratio);
+    const h = Math.round(rect.height * ratio);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      // scale context so 1 unit = 1 CSS pixel
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+  }
+
+
+  // Initialize small inline canvas (for desktop & final image container)
+  function initSmallCanvas() {
+    resizeToDisplaySize(smallCanvas);
+    const ctx = smallCanvas.getContext('2d');
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    // Make small canvas non-interactive on touch devices (we will open fullscreen signer instead)
+    if (isTouchDevice) {
+      smallCanvas.style.touchAction = 'manipulation'; // allow normal gestures but we won't add pointer listeners
+      // Add a tap to open fullscreen signer for mobile
+      smallCanvas.addEventListener('pointerdown', openFullScreenSigner);
+    } else {
+      // Desktop: allow direct drawing on the inline small canvas
+      smallCanvas.style.touchAction = 'none';
+      attachPointerDrawing(smallCanvas, { lineWidth: 2 });
+    }
+  }
+
+  // Attach pointer-based drawing to a canvas element
+  function attachPointerDrawing(canvas, opts = {}) {
+    const ctx = canvas.getContext('2d');
+    ctx.lineWidth = opts.lineWidth || 2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = opts.strokeStyle || '#000';
+
+    let drawing = false;
+    let last = null;
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault && e.preventDefault();
+      drawing = true;
+      canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+      last = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!drawing) return;
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      last = pos;
+    });
+
+    canvas.addEventListener('pointerup', (e) => {
+      drawing = false;
+      try { canvas.releasePointerCapture && canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    canvas.addEventListener('pointercancel', () => (drawing = false));
+    // Touch-action must be none for accurate capture, set in caller
+  }
+
+  // Fullscreen signer logic (modal)
+  function openFullScreenSigner(e) {
+    e && e.preventDefault && e.preventDefault(); // avoid triggering other gestures
+    // Show modal
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+
+    // Prepare full canvas
+    resizeToDisplaySize(fullCanvas);
+    const ctx = fullCanvas.getContext('2d');
+    // make the stroke thicker on big canvas
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+
+    // reset history if empty
+    fullHistory = [];
+
+    // Attach pointer drawing to full canvas (with undo support)
+    attachFullCanvasDrawing(fullCanvas);
+    // prevent background scroll while modal open on some browsers
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeFullScreenSigner() {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    // remove pointer listeners from full canvas by replacing it (cheap way)
+    const newFull = fullCanvas.cloneNode(true);
+    fullCanvas.parentNode.replaceChild(newFull, fullCanvas);
+    // reassign the global reference
+    // NOTE: if user opens again, attachFullCanvasDrawing will re-add listeners
+    window.fullCanvasRef = document.getElementById('fullSignatureCanvas');
+  }
+
+  // Save full canvas into the small canvas (scaled down)
+  function saveFullToSmall() {
+    const src = modal.querySelector('#fullSignatureCanvas') || window.fullCanvasRef || document.getElementById('fullSignatureCanvas');
+    const sCtx = smallCanvas.getContext('2d');
+    // Clear small canvas properly (use pixel dims)
+    sCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
+
+    // Create a temporary image scaled to small canvas CSS size
+    const img = new Image();
+    img.onload = function () {
+      // draw image scaled to small canvas CSS size (note ctx transform is set)
+      // drawImage uses CSS px coordinate space because we scaled context in resizeToDisplaySize
+      const rect = smallCanvas.getBoundingClientRect();
+      const cssW = rect.width;
+      const cssH = rect.height;
+      sCtx.drawImage(img, 0, 0, cssW, cssH);
+    };
+    img.src = src.toDataURL('image/png');
+  }
+
+  // Attach drawing to the fullscreen canvas with history for undo
+  function attachFullCanvasDrawing(canvas) {
+    // ensure we refer to the current element (in case replaced)
+    const c = canvas;
+    // re-run resize (in case orientation changed)
+    resizeToDisplaySize(c);
+    const ctx = c.getContext('2d');
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+
+    let drawing = false;
+    let last = null;
+
+    function getPos(e) {
+      const rect = c.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function pushHistory() {
+      // Save a snapshot for undo (limit memory)
+      try {
+        const snapshot = c.toDataURL('image/png');
+        fullHistory.push(snapshot);
+        if (fullHistory.length > 10) fullHistory.shift();
+      } catch (err) { /* ignore */ }
+    }
+
+    // pointerdown
+    c.addEventListener('pointerdown', function (e) {
+      e.preventDefault && e.preventDefault();
+      drawing = true;
+      c.setPointerCapture && c.setPointerCapture(e.pointerId);
+      last = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      // snapshot BEFORE stroke so undo reverts last stroke
+      pushHistory();
+    });
+
+    c.addEventListener('pointermove', function (e) {
+      if (!drawing) return;
+      const pos = getPos(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      last = pos;
+    });
+
+    c.addEventListener('pointerup', function (e) {
+      drawing = false;
+      try { c.releasePointerCapture && c.releasePointerCapture(e.pointerId); } catch (err) {}
+    });
+
+    c.addEventListener('pointercancel', function () { drawing = false; });
+
+    // clear & undo buttons
+    fullClear.onclick = function () {
+      ctx.clearRect(0, 0, c.width, c.height);
+      fullHistory = [];
+    };
+
+    fullUndo.onclick = function () {
+      if (!fullHistory.length) {
+        ctx.clearRect(0, 0, c.width, c.height);
+        return;
+      }
+      const img = new Image();
+      const lastSnapshot = fullHistory.pop();
+      img.onload = function () {
+        // clear and draw snapshot
+        ctx.clearRect(0, 0, c.width, c.height);
+        // drawImage uses CSS pixel mapping because of transform
+        const rect = c.getBoundingClientRect();
+        ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      };
+      img.src = lastSnapshot;
+    };
+  }
+
+  // Event handlers for modal controls
+  sigDone.addEventListener("click", () => {
+  saveFullToSmall();
+  closeFullScreenSigner();
+  validateForm(); // ✅ re-check fields + signature
+});
+
+
+  sigCancel.addEventListener('click', function () {
+    closeFullScreenSigner();
+  });
+
+  clearBtn.addEventListener('click', function () {
+  const ctx = smallCanvas.getContext('2d');
+  ctx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
+  validateForm(); // 🔁 re-check
+});
+
+
+  // If orientation changes, re-size canvases (for correctness)
+  window.addEventListener('orientationchange', function () {
+    setTimeout(function () {
+      resizeToDisplaySize(smallCanvas);
+      const fc = document.getElementById('fullSignatureCanvas');
+      if (fc) resizeToDisplaySize(fc);
+    }, 200);
+  });
+
+  // Run initial setup
+  initSmallCanvas();
+  // Make sure modal fullCanvas ref is updated if DOM nodes replaced
+  window.fullCanvasRef = document.getElementById('fullSignatureCanvas');
+
+  // Safety: if modal was opened because we attached pointerdown to small canvas,
+  // ensure full canvas gets listeners on first open
+  // (attachFullCanvasDrawing will be called when openFullScreenSigner runs)
+})();
+</script>
+
 
     <button
     id="submitBtn"
     disabled
     onclick="generatePDF()"
-    class="mt-8 bg-indigo-600 text-white rounded-xl py-3 text-sm font-medium
+    class="mt-8 bg-[#1f2a44] text-white rounded-xl py-3 text-sm font-medium
            opacity-50 cursor-not-allowed transition">
     Submit & Download Agreement
   </button>
@@ -176,7 +478,7 @@
     outline: none;
   }
   .input:focus {
-    border-color: #6366f1;
+    border-color: #1f2a44;
     box-shadow: 0 0 0 2px rgba(99,102,241,.15);
   }
   canvas {
@@ -205,38 +507,6 @@
   bind("email", "previewEmail");
 </script>
 
-<!-- SIGNATURE PAD -->
-<script>
-  const canvas = document.getElementById("signaturePad");
-  const ctx = canvas.getContext("2d");
-  let drawing = false;
-
-  const resizeCanvas = () => {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  };
-  window.addEventListener("resize", resizeCanvas);
-  resizeCanvas();
-
-  canvas.addEventListener("mousedown", () => drawing = true);
-  canvas.addEventListener("mouseup", () => drawing = false);
-  canvas.addEventListener("mouseout", () => drawing = false);
-
-  canvas.addEventListener("mousemove", e => {
-    if (!drawing) return;
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#111827";
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
-  });
-
-  document.getElementById("clearSig").onclick = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   function generatePDF() {
@@ -396,24 +666,7 @@ watermarkImage.onload = () => {
 
   }
   </script>
-  
-<script>
-  let hasSignature = false;
 
-  const markSigned = () => {
-    hasSignature = true;
-    validateForm();
-  };
-
-  canvas.addEventListener("mousedown", markSigned);
-  canvas.addEventListener("touchstart", markSigned);
-
-  document.getElementById("clearSig").onclick = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    hasSignature = false;
-    validateForm();
-  };
-</script>
 <script>
   const fields = [
     "businessName",
@@ -431,7 +684,8 @@ watermarkImage.onload = () => {
       return el.value.trim().length > 0;
     });
 
-    if (allFilled && hasSignature) {
+    if (allFilled && hasActualSignature()
+) {
       submitBtn.disabled = false;
       submitBtn.classList.remove("opacity-50", "cursor-not-allowed");
       submitBtn.classList.add("hover:bg-indigo-700");
@@ -444,64 +698,6 @@ watermarkImage.onload = () => {
 
   fields.forEach(id => {
     document.getElementById(id).addEventListener("input", validateForm);
-  });
-</script>
-<script>
-  const canvas = document.getElementById("signaturePad");
-  const ctx = canvas.getContext("2d");
-
-  let drawing = false;
-
-  function resizeCanvas() {
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = canvas.offsetWidth * ratio;
-    canvas.height = canvas.offsetHeight * ratio;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#000";
-  }
-
-  resizeCanvas();
-  window.addEventListener("resize", resizeCanvas);
-
-  function getPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  }
-
-  canvas.addEventListener("pointerdown", (e) => {
-    drawing = true;
-    canvas.setPointerCapture(e.pointerId);
-
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  });
-
-  canvas.addEventListener("pointermove", (e) => {
-    if (!drawing) return;
-
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-  });
-
-  canvas.addEventListener("pointerup", () => {
-    drawing = false;
-  });
-
-  canvas.addEventListener("pointercancel", () => {
-    drawing = false;
-  });
-
-  // Clear signature
-  document.getElementById("clearSig").addEventListener("click", () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
   });
 </script>
 
