@@ -1,142 +1,543 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bokku Gift Card</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>trinfelly</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'sans-serif']
+      },
+      colors: {
+        moon: {
+          DEFAULT: '#3A63F3',
+          light: '#EEF2FF'
+        }
+      }
+    }
+  }
+}
+</script>
 
 <style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family: 'Segoe UI', sans-serif;
+/* V Shape Gift Card Background */
+.hero-bg {
+  position: relative;
+  overflow: hidden;
 }
 
-body{
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#f1f4f8;
+.hero-bg::before,
+.hero-bg::after {
+  content: "";
+  position: absolute;
+  width: 320px;
+  height: 200px;
+  background-image: url('fuelup.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.56;
+  top: 40px;
+  z-index: 0;
 }
 
-/* CARD */
-.card{
-    width:390px;
-    height:210px;
-    border-radius:14px;
-    padding:18px;
-    position:relative;
-    overflow:hidden;
-    background:linear-gradient(135deg,#0d47a1,#1565c0);
-    box-shadow:0 18px 40px rgba(0,0,0,0.18);
-    color:white;
+.hero-bg::before {
+  left: 20%;
+  transform: rotate(-18deg);
 }
 
-/* Yellow Accent Shape */
-.card::after{
-    content:"";
-    position:absolute;
-    width:160px;
-    height:160px;
-    background:#ffd400;
-    border-radius:50%;
-    bottom:-60px;
-    right:-60px;
-    opacity:0.12;
+.hero-bg::after {
+  right: 20%;
+  transform: rotate(18deg);
 }
 
-/* Top Section */
-.top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+@media(max-width:768px){
+  .hero-bg::before,
+  .hero-bg::after{
+    width:220px;
+    height:140px;
+    top:20px;
+  }
 }
-
-/* Logo (bokku!) */
-.logo{
-    font-size:22px;
-    font-weight:900;
-    letter-spacing:1px;
-    color:#ffd400;
-    text-transform:lowercase;
-}
-
-/* Price */
-.price{
-    font-size:16px;
-    font-weight:600;
-    color:#ffd400;
-}
-
-/* Message Box */
-.message-box{
-    margin-top:28px;
-    background:rgba(255,255,255,0.15);
-    padding:9px 14px;
-    border-radius:9px;
-    backdrop-filter:blur(6px);
-    font-size:13px;
-    font-weight:500;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-}
-
-/* Code Section */
-.code-section{
-    margin-top:18px;
-}
-
-.to-buy{
-    font-size:10px;
-    letter-spacing:2px;
-    color:#ffd400;
-    margin-bottom:5px;
-}
-
-.code{
-    font-size:18px;
-    font-weight:600;
-    letter-spacing:6px;
-}
-
-/* Footer */
-.footer{
-    position:absolute;
-    bottom:10px;
-    width:100%;
-    text-align:center;
-    font-size:10px;
-    opacity:0.85;
-}
-
 </style>
 </head>
-<body>
 
-<div class="card">
+<body class="bg-white text-gray-900 font-sans antialiased">
 
-    <div class="top">
-        <div class="logo">bokku!</div>
-        <div class="price">₦10,000</div>
-    </div>
+<!-- HEADER -->
+<header class="w-full border-b border-gray-100 bg-white/90 backdrop-blur sticky top-0 z-50">
+<div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
-    <div class="message-box">
-        🎉 Make Every Shopping Trip Special
-    </div>
+  <div class="flex items-center gap-">
+    <img src="https://i.ibb.co/bjRxJmLt/16949-DE7-7-DBD-475-A-8720-863-D3-E946-C25.png" class="w-8 h-8" />
+    <span class="font-display text-lg font-semibold tracking-tight text-gray-500">trinfelly</span>
+  </div>
 
-    <div class="code-section">
-        <div class="to-buy">TO BUY</div>
-        <div class="code">012 429 339</div>
-    </div>
+  <!-- Desktop Nav -->
+  <nav class="hidden md:flex gap-8 text-sm font-medium text-gray-600">
+    <a href="#buy" class="hover:text-moon transition">Buy</a>
+    <a href="#redeem" class="hover:text-moon transition">Redeem</a>
+    <a href="#sell" class="hover:text-moon transition">Sell</a>
+    <a href="#partner" class="hover:text-moon transition">Partner</a>
+    <a href="#about" class="hover:text-moon transition">About</a>
+    <a href="#contact" class="hover:text-moon transition">Contact</a>
+  </nav>
 
-    <div class="footer">
-        Powered by Trinfelly
-    </div>
+  <!-- Mobile Menu Icon -->
+<!-- Mobile Menu Button -->
+<button id="menuBtn" class="md:hidden relative w-10 h-10 flex items-center justify-center group">
+
+  <span class="sr-only">Open Menu</span>
+
+  <div class="space-y-1.5">
+    <span class="block w-6 h-0.5 bg-black transition-all duration-300 origin-center" id="line1"></span>
+    <span class="block w-6 h-0.5 bg-black transition-all duration-300" id="line2"></span>
+    <span class="block w-6 h-0.5 bg-black transition-all duration-300 origin-center" id="line3"></span>
+  </div>
+
+</button>
 
 </div>
+
+<!-- Mobile Nav -->
+<div id="mobileMenu" class="hidden md:hidden px-6 pb-6 space-y-4 text-sm font-medium text-gray-600 bg-white shadow-sm">
+  <a href="#buy" class="block">Buy</a>
+  <a href="#redeem" class="block">Redeem</a>
+  <a href="#sell" class="block">Sell</a>
+  <a href="#partner" class="block">Partner</a>
+  <a href="#about" class="block">About</a>
+  <a href="#contact" class="block">Contact</a>
+</div>
+</header>
+
+<section class="relative py-20 overflow-hidden bg-white gift-wrapper">
+    <!-- Hero Content -->
+    <div class="relative z-10 max-w-3xl mx-auto text-center px-6 space-y-6">
+        <h1 class="font-display text-4xl md:text-5xl font-bold tracking-tight">
+            Instant Gift Card Validation & Redemption
+          </h1>
+          <p class="text-gray-700 text-lg md:text-xl flex justify-center items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Secure, real-time verification for your in-store gift cards
+          </p>
+      <div class="flex flex-col md:flex-row justify-center gap-4 mt-4">
+        <a href="#buy" class="bg-moon text-white px-6 py-3 rounded-2xl font-medium shadow-md hover:opacity-95 transition flex items-center justify-center gap-2">
+          Buy Gift Card
+        </a>
+        <a href="#redeem" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-2xl font-medium hover:bg-gray-200 transition flex items-center justify-center gap-2">
+          Redeem
+        </a>
+      </div>
+    </div>
+  
+    <!-- Gift Card Images at Bottom -->
+    <div class="mt-16 md:mt-24 flex justify-center gap-6 md:gap-12 z-0 relative">
+      <img src="fuelup.png" class="w-46 md:w-58 rounded-xl shadow-lg transform md:-rotate-6" />
+      <img src="fbcard.png" class="w-46 md:w-58 rounded-xl shadow-lg transform md:rotate-6 -translate-y-4 md:-translate-y-0" />
+    </div>
+  </section>
+  
+  <!-- Styles for gift-wrapper feel -->
+  <style>
+  .gift-wrapper {
+    background: repeating-linear-gradient(
+      135deg,
+      #ffffff,
+      #ffffff 20px,
+      #f9f9f9 20px,
+      #f9f9f9 40px
+    );
+  }
+  </style>
+
+<!-- BACKGROUND DECOR -->
+<div class="absolute inset-0 -z-10 overflow-hidden">
+  <div class="absolute top-20 left-10 w-72 h-72 bg-gray-100 rounded-full blur-3xl opacity-40"></div>
+  <div class="absolute bottom-10 right-20 w-96 h-96 bg-gray-200 rounded-full blur-3xl opacity-30"></div>
+</div>
+
+<main class="max-w-5xl mx-auto px-6 pb-24 pt-16 relative">
+
+  <div class="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-3xl p-10 space-y-14">
+
+    <!-- HEADER -->
+    <div class="text-center space-y-3">
+      <h2 class="text-3xl font-semibold text-gray-900 tracking-tight">
+        Purchase Code Access
+      </h2>
+      <p class="text-gray-500 text-sm">
+        Enter your code, complete payment, and unlock instantly
+      </p>
+    </div>
+
+    <!-- STEPPER -->
+    <div class="flex justify-between items-center relative">
+
+      <!-- Line -->
+      <div class="absolute top-6 left-0 w-full h-0.5 bg-gray-200"></div>
+
+      <!-- STEP 1 -->
+      <div class="relative flex flex-col items-center z-10">
+        <div id="step1Circle"
+          class="w-12 h-12 flex items-center justify-center rounded-full bg-black text-white shadow-lg">
+
+          <!-- Key Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" 
+               class="w-5 h-5" 
+               fill="none" 
+               viewBox="0 0 24 24" 
+               stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 7a4 4 0 11-8 0 4 4 0 018 0zM12 14v7m0 0h3m-3 0H9" />
+          </svg>
+
+        </div>
+        <span class="mt-3 text-xs font-medium text-gray-700">
+          Enter Code
+        </span>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="relative flex flex-col items-center z-10">
+        <div id="step2Circle"
+          class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-600">
+
+          <!-- Card Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg"
+               class="w-5 h-5"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2"/>
+            <path stroke-width="2" d="M2 10h20"/>
+          </svg>
+
+        </div>
+        <span class="mt-3 text-xs text-gray-500">
+          Make Payment
+        </span>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="relative flex flex-col items-center z-10">
+        <div id="step3Circle"
+          class="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-600">
+
+          <!-- Check Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg"
+               class="w-5 h-5"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M5 13l4 4L19 7"/>
+          </svg>
+
+        </div>
+        <span class="mt-3 text-xs text-gray-500">
+          Confirmation
+        </span>
+      </div>
+
+    </div>
+
+    <!-- STEP 1 CONTENT -->
+    <div class="space-y-6">
+
+      <div class="space-y-2">
+        <label class="text-sm font-medium text-gray-700">
+          Purchase Code
+        </label>
+        <input type="text"
+          class="w-full px-6 py-4 rounded-2xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black transition-all duration-300"
+          placeholder="Enter your unique code">
+      </div>
+
+      <button
+        class="w-full py-4 rounded-2xl bg-black text-white font-medium tracking-wide hover:bg-gray-800 transition-all duration-300 shadow-xl hover:shadow-2xl">
+        Continue to Payment
+      </button>
+
+    </div>
+
+  </div>
+
+</main>
+  <section class="max-w-7xl mx-auto px-6 py-20">
+    <div class="grid md:grid-cols-2 gap-4">
+  
+      <!-- BUY GIFT CARD -->
+      <div class="relative aspect-square rounded-3xl overflow-hidden group">
+        
+        <!-- Background Image -->
+        <img src="https://images.unsplash.com/photo-1760564877728-73bf7c503bf7?w=400&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGJ1eSUyMGdpZnR8ZW58MHx8MHx8fDA%3D"
+             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+  
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/50"></div>
+  
+        <!-- Content -->
+        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
+          
+          <div class="space-y-4">
+            <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+              <!-- Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2v1H6v4h3v1c0 1.105 1.343 2 3 2s3-.895 3-2v-1h3v-4h-3V10c0-1.105-1.343-2-3-2z"/>
+              </svg>
+            </div>
+  
+            <h2 class="font-display text-3xl font-semibold">
+              Buy Gift Cards
+            </h2>
+  
+            <p class="text-white/80 leading-relaxed">
+              Purchase verified physical gift cards securely through our
+              in-store validation system with instant balance confirmation.
+            </p>
+          </div>
+  
+          <!-- CTA -->
+          <a href="#buy"
+            class="bg-white text-black px-6 py-3 rounded-2xl font-medium w-fit hover:bg-gray-200 transition">
+            Get Started
+          </a>
+        </div>
+      </div>
+  
+  
+      <!-- REDEEM GIFT CARD -->
+      <div class="relative aspect-square rounded-3xl overflow-hidden group">
+        
+        <!-- Background Image -->
+        <img src="https://media.istockphoto.com/id/2174416764/photo/a-detailed-close-up-of-a-%C3%A225-gift-card-placed-on-a-table-perfect-for-gifting-occasions-and.webp?a=1&b=1&s=612x612&w=0&k=20&c=stoVRzBrxv3P5yDpuiQb6RaQaFAt9HZg8Ex41hZztCY="
+             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+  
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/50"></div>
+  
+        <!-- Content -->
+        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
+          
+          <div class="space-y-4">
+            <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+              <!-- Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 8h16M4 12h8m-8 4h16"/>
+              </svg>
+            </div>
+  
+            <h2 class="font-display text-3xl font-semibold">
+              Redeem Gift Cards
+            </h2>
+  
+            <p class="text-white/80 leading-relaxed">
+              Validate and redeem your physical gift card balance securely
+              through our trusted retail infrastructure.
+            </p>
+          </div>
+  
+          <!-- No heavy CTA here to keep balance -->
+          <span class="text-white/60 text-sm">
+            Available at partner stores
+          </span>
+  
+        </div>
+      </div>
+  
+    </div>
+  </section>
+  <section class="max-w-7xl mx-auto px-6 pb-24">
+
+    <div class="grid md:grid-cols-2 gap-8">
+  
+      <div class="relative aspect-square rounded-3xl overflow-hidden group">
+
+        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop"
+             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+      
+        <div class="absolute inset-0 bg-black/65"></div>
+      
+        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
+      
+          <div class="space-y-4">
+            <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+              🤝
+            </div>
+      
+            <h2 class="font-display text-3xl font-semibold">
+              Partner With Us
+            </h2>
+      
+            <p class="text-white/80 leading-relaxed">
+              Join our expanding retail ecosystem and integrate secure
+              gift card validation directly into your store or outlet.
+            </p>
+          </div>
+      
+          <a href="#contact"
+            class="bg-white text-black px-6 py-3 rounded-2xl font-medium w-fit hover:bg-gray-200 transition">
+            Become a Partner
+          </a>
+      
+        </div>
+      </div>
+  
+      <div class="relative aspect-square rounded-3xl overflow-hidden group">
+
+        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop"
+             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
+      
+        <div class="absolute inset-0 bg-black/70"></div>
+      
+        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
+      
+          <div class="space-y-4">
+            <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
+              🏢
+            </div>
+      
+            <h2 class="font-display text-3xl font-semibold">
+              About Us
+            </h2>
+      
+            <p class="text-white/80 leading-relaxed">
+              We are building a trusted physical gift card ecosystem
+              powered by secure in-store validation and structured
+              retail integration across Nigeria.
+            </p>
+          </div>
+      
+          <span class="text-white/70 text-sm">
+            Secure • Verified • Scalable
+          </span>
+      
+        </div>
+      </div>
+  
+    </div>
+  
+  </section>
+  <section class="bg-black text-white py-16">
+
+    <div class="max-w-7xl mx-auto px-6">
+  
+      <div class="grid md:grid-cols-4 gap-10 text-sm">
+  
+        <!-- Location -->
+        <div class="space-y-3">
+          <h4 class="font-semibold text-white text-base">Head Office</h4>
+          <p class="text-white/70">
+            Victoria Island<br>
+            Lagos, Nigeria
+          </p>
+        </div>
+  
+        <!-- Support -->
+        <div class="space-y-3">
+          <h4 class="font-semibold text-white text-base">Customer Support</h4>
+          <p class="text-white/70">
+            support@yourbrand.com<br>
+            +234 800 000 0000
+          </p>
+        </div>
+  
+        <!-- Partnerships -->
+        <div class="space-y-3">
+          <h4 class="font-semibold text-white text-base">Partnerships</h4>
+          <p class="text-white/70">
+            partners@yourbrand.com<br>
+            Corporate Inquiries
+          </p>
+        </div>
+  
+        <!-- Business Hours -->
+        <div class="space-y-3">
+          <h4 class="font-semibold text-white text-base">Operating Hours</h4>
+          <p class="text-white/70">
+            Mon – Sat<br>
+            9:00 AM – 6:00 PM
+          </p>
+        </div>
+  
+      </div>
+  
+    </div>
+  
+  </section>
+  <!-- FOOTER -->
+  <footer class="border-t border-gray-100 py-8 mt-12">
+    <div class="max-w-7xl mx-auto px-6 text-sm text-gray-500 text-center md:flex md:justify-between md:items-center">
+      <span>© 2026 trinfelly.com All rights reserved.</span>
+      <span>Secure Gift Card Infrastructure</span>
+    </div>
+  </footer>
+  
+  <script>
+  document.getElementById('menuBtn')?.addEventListener('click', function(){
+    document.getElementById('mobileMenu')?.classList.toggle('hidden');
+  });
+  
+  function validateCard(){
+    const code = document.getElementById('cardCode').value.trim();
+    const result = document.getElementById('cardResult');
+  
+    if(code === "1234-5678-0000"){
+      result.classList.remove('hidden');
+      result.innerHTML = "✅ Valid Card – $100 Balance";
+      document.getElementById('step2').classList.remove('hidden');
+      updateStep(2);
+    } else {
+      result.classList.remove('hidden');
+      result.innerHTML = "❌ Card not found in system.";
+    }
+  }
+  
+  function confirmStorePayment(){
+    document.getElementById('step3').classList.remove('hidden');
+    updateStep(3);
+  }
+  
+  function completePayment(){
+    alert("Redirecting to Paystack (Integration required)");
+  }
+  
+  function updateStep(step){
+    const indicators = [
+      document.getElementById('step1Indicator'),
+      document.getElementById('step2Indicator'),
+      document.getElementById('step3Indicator')
+    ];
+  
+    indicators.forEach((el, index) => {
+      el.classList.remove('text-moon');
+      el.classList.add('text-gray-400');
+      el.querySelector('div')?.classList.replace('bg-moon-light', 'bg-gray-200');
+      if(index+1 === step){
+        el.classList.remove('text-gray-400');
+        el.classList.add('text-moon');
+        el.querySelector('div')?.classList.replace('bg-gray-200', 'bg-moon-light');
+      }
+    });
+  }
+  </script>
 
 </body>
 </html>
