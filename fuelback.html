@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FuelUp Gift Card - Back</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI', sans-serif;
+}
+
+body{
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#ececec;
+}
+
+/* CARD BACK */
+.card-back{
+    width:400px;
+    height:220px;
+    border-radius:14px;
+    padding:18px;
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg,#111111,#1c1c1c);
+    color:white;
+    box-shadow:0 20px 45px rgba(0,0,0,0.3);
+}
+
+/* Subtle Flame Accent */
+.card-back::after{
+    content:"";
+    position:absolute;
+    width:220px;
+    height:220px;
+    background:radial-gradient(circle,#ff3c00,#ff9500);
+    border-radius:50%;
+    top:-100px;
+    left:-100px;
+    opacity:0.07;
+}
+
+/* LOGO HEADER */
+.brand-header{
+    font-size:14px;
+    font-weight:700;
+    color:#ff9500;
+    margin-bottom:10px;
+    letter-spacing:1px;
+}
+
+.brand-header span{
+    color:#ff3c00;
+}
+
+/* INSTRUCTIONS */
+.instructions{
+    font-size:11px;
+    line-height:1.6;
+    opacity:0.85;
+    margin-bottom:12px;
+}
+
+/* SCRATCH AREA */
+.scratch-label{
+    font-size:10px;
+    letter-spacing:2px;
+    color:#ff3c00;
+    margin-bottom:6px;
+}
+
+.scratch-panel{
+    height:38px;
+    border-radius:6px;
+    background:linear-gradient(135deg,#777,#999);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:12px;
+    letter-spacing:1px;
+    color:#222;
+    font-weight:600;
+    box-shadow:inset 0 2px 4px rgba(0,0,0,0.3);
+}
+
+/* TERMS */
+.terms{
+    font-size:8px;
+    opacity:0.6;
+    margin-top:12px;
+    line-height:1.4;
+}
+
+/* FOOTER */
+.footer{
+    position:absolute;
+    bottom:10px;
+    width:100%;
+    text-align:center;
+    font-size:9px;
+    opacity:0.7;
+}
+</style>
+</head>
+<body>
+
+<div class="card-back">
+
+    <div class="brand-header">
+        FUEL<span>UP!</span> GIFT CARD
+    </div>
+
+    <div class="instructions">
+        To redeem, visit any FuelUp station nationwide and present this card at checkout.
+        Scratch below to reveal your secure FuelUp code.
+    </div>
+
+    <div class="scratch-label">SCRATCH TO REVEAL</div>
+
+    <div class="scratch-panel">
+        THIS IS MY FUELUP CODE
+    </div>
+
+    <div class="terms">
+        This card is valid for fuel purchases only. Not redeemable for cash.
+        Lost or stolen cards will not be replaced.
+        Valid for 12 months from activation date.
+    </div>
+
+    <div class="footer">
+        Powered by Trinfelly
+    </div>
+
+</div>
+
+</body>
+</html>
