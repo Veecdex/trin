@@ -7,7 +7,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
-
+<script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 
 <script>
@@ -20,9 +20,9 @@ tailwind.config = {
       },
       colors: {
         moon: {
-          DEFAULT: '#3A63F3',
-          light: '#EEF2FF'
-        }
+   DEFAULT: '#1E2A78',   
+   light: '#E6EBFF'
+}
       }
     }
   }
@@ -68,6 +68,9 @@ tailwind.config = {
     top:20px;
   }
 }
+html {
+  scroll-behavior: smooth;
+}
 </style>
 </head>
 
@@ -86,14 +89,11 @@ tailwind.config = {
   <nav class="hidden md:flex gap-8 text-sm font-medium text-gray-600">
     <a href="#buy" class="hover:text-moon transition">Buy</a>
     <a href="#redeem" class="hover:text-moon transition">Redeem</a>
-    <a href="#sell" class="hover:text-moon transition">Sell</a>
     <a href="#partner" class="hover:text-moon transition">Partner</a>
     <a href="#about" class="hover:text-moon transition">About</a>
     <a href="#contact" class="hover:text-moon transition">Contact</a>
   </nav>
 
-  <!-- Mobile Menu Icon -->
-<!-- Mobile Menu Button -->
 <button id="menuBtn" class="md:hidden relative w-10 h-10 flex items-center justify-center group">
 
   <span class="sr-only">Open Menu</span>
@@ -108,14 +108,36 @@ tailwind.config = {
 
 </div>
 
-<!-- Mobile Nav -->
-<div id="mobileMenu" class="hidden md:hidden px-6 pb-6 space-y-4 text-sm font-medium text-gray-600 bg-white shadow-sm">
-  <a href="#buy" class="block">Buy</a>
-  <a href="#redeem" class="block">Redeem</a>
-  <a href="#sell" class="block">Sell</a>
-  <a href="#partner" class="block">Partner</a>
-  <a href="#about" class="block">About</a>
-  <a href="#contact" class="block">Contact</a>
+<!-- Mobile Nav Overlay -->
+<div id="mobileMenu"
+     class="fixed top-0 left-0 w-full h-screen bg-white z-50 
+            transform -translate-y-full transition-transform duration-500 ease-in-out
+            md:hidden overflow-y-auto">
+
+  <!-- Top Bar Inside Menu -->
+  <div class="flex justify-between items-center px-6 py-6 border-b">
+    <div class="flex items-center gap-">
+      <img src="https://i.ibb.co/bjRxJmLt/16949-DE7-7-DBD-475-A-8720-863-D3-E946-C25.png" class="w-8 h-8" />
+      <span class="font-display text-lg font-semibold tracking-tight text-gray-500">trinfelly</span>
+    </div>
+
+    <!-- Close Button -->
+    <button id="closeMenu" class="w-10 h-10 flex items-center justify-center">
+      <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Links -->
+  <div class="px-6 py-8 space-y-6 text-base font-medium text-gray-700">
+    <a href="#buy" class="block">Buy</a>
+    <a href="#redeem" class="block">Redeem</a>
+    <a href="#partner" class="block">Partner</a>
+    <a href="#about" class="block">About</a>
+    <a href="#contact" class="block">Contact</a>
+  </div>
+
 </div>
 </header>
 
@@ -125,11 +147,23 @@ tailwind.config = {
         <h1 class="font-display text-4xl md:text-5xl font-bold tracking-tight">
             Instant Gift Card Validation & Redemption
           </h1>
-          <p class="text-gray-700 text-lg md:text-xl flex justify-center items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          <p class="text-gray-700 text-lg md:text-xl flex justify-center items-start gap-3 text-center md:text-left max-w-2xl mx-auto">
+  
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 class="w-6 h-6 text-moon flex-shrink-0 mt-1"
+                 fill="none"
+                 viewBox="0 0 24 24"
+                 stroke="currentColor">
+              <path stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"/>
             </svg>
-            Secure, real-time verification for your in-store gift cards
+          
+            <span>
+              Secure, real-time verification for your in-store gift cards
+            </span>
+          
           </p>
       <div class="flex flex-col md:flex-row justify-center gap-4 mt-4">
         <a href="#buy" class="bg-moon text-white px-6 py-3 rounded-2xl font-medium shadow-md hover:opacity-95 transition flex items-center justify-center gap-2">
@@ -167,7 +201,7 @@ tailwind.config = {
   <div class="absolute bottom-10 right-20 w-96 h-96 bg-gray-200 rounded-full blur-3xl opacity-30"></div>
 </div>
 
-<main class="max-w-5xl mx-auto px-6 pb-24 pt-16 relative">
+<main id="buy" class=" px-6 pb-24 pt-16 relative bg-gray-50">
 
   <div class="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-3xl p-10 space-y-14">
 
@@ -276,165 +310,128 @@ tailwind.config = {
   </div>
 
 </main>
-  <section class="max-w-7xl mx-auto px-6 py-20">
-    <div class="grid md:grid-cols-2 gap-4">
-  
-      <!-- BUY GIFT CARD -->
-      <div class="relative aspect-square rounded-3xl overflow-hidden group">
-        
-        <!-- Background Image -->
-        <img src="https://images.unsplash.com/photo-1760564877728-73bf7c503bf7?w=400&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGJ1eSUyMGdpZnR8ZW58MHx8MHx8fDA%3D"
-             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
-  
-        <!-- Overlay -->
-        <div class="absolute inset-0 bg-black/50"></div>
-  
-        <!-- Content -->
-        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
-          
-          <div class="space-y-4">
-            <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <!-- Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 8c-1.657 0-3 .895-3 2v1H6v4h3v1c0 1.105 1.343 2 3 2s3-.895 3-2v-1h3v-4h-3V10c0-1.105-1.343-2-3-2z"/>
-              </svg>
-            </div>
-  
-            <h2 class="font-display text-3xl font-semibold">
-              Buy Gift Cards
-            </h2>
-  
-            <p class="text-white/80 leading-relaxed">
-              Purchase verified physical gift cards securely through our
-              in-store validation system with instant balance confirmation.
-            </p>
-          </div>
-  
-          <!-- CTA -->
-          <a href="#buy"
-            class="bg-white text-black px-6 py-3 rounded-2xl font-medium w-fit hover:bg-gray-200 transition">
-            Get Started
-          </a>
-        </div>
+<section class="max-w-6xl mx-auto px-6 py-28">
+
+  <!-- Heading -->
+  <div class="text-center mb-20">
+    <h5 class="text-4xl md:text-4xl font-semibold tracking-tight">
+      Our Services
+    </h2>
+    <p class="text-gray-500 mt-4 max-w-xl mx-auto">
+      A structured and secure ecosystem built for seamless
+      physical gift card transactions.
+    </p>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-8">
+
+    <!-- BUY -->
+    <div class="group bg-white rounded-3xl p-10 border border-gray-100 shadow-sm 
+                hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+
+      <div class="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center mb-8 transition group-hover:scale-110">
+        <i data-lucide="credit-card"></i>
       </div>
-  
-  
-      <!-- REDEEM GIFT CARD -->
-      <div class="relative aspect-square rounded-3xl overflow-hidden group">
-        
-        <!-- Background Image -->
-        <img src="https://media.istockphoto.com/id/2174416764/photo/a-detailed-close-up-of-a-%C3%A225-gift-card-placed-on-a-table-perfect-for-gifting-occasions-and.webp?a=1&b=1&s=612x612&w=0&k=20&c=stoVRzBrxv3P5yDpuiQb6RaQaFAt9HZg8Ex41hZztCY="
-             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
-  
-        <!-- Overlay -->
-        <div class="absolute inset-0 bg-black/50"></div>
-  
-        <!-- Content -->
-        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
-          
-          <div class="space-y-4">
-            <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <!-- Icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M4 8h16M4 12h8m-8 4h16"/>
-              </svg>
-            </div>
-  
-            <h2 class="font-display text-3xl font-semibold">
-              Redeem Gift Cards
-            </h2>
-  
-            <p class="text-white/80 leading-relaxed">
-              Validate and redeem your physical gift card balance securely
-              through our trusted retail infrastructure.
-            </p>
-          </div>
-  
-          <!-- No heavy CTA here to keep balance -->
-          <span class="text-white/60 text-sm">
-            Available at partner stores
-          </span>
-  
-        </div>
-      </div>
-  
+
+      <h3 class="text-2xl font-semibold mb-4">
+        Buy Gift Cards
+      </h3>
+
+      <p class="text-gray-600 leading-relaxed mb-8">
+        Purchase verified physical gift cards securely with instant
+        validation and balance confirmation.
+      </p>
+
+      <a href="#buy"
+         class="inline-flex items-center gap-2 font-medium text-black hover:gap-4 transition-all">
+        Get Started →
+      </a>
+
     </div>
-  </section>
-  <section class="max-w-7xl mx-auto px-6 pb-24">
 
-    <div class="grid md:grid-cols-2 gap-8">
-  
-      <div class="relative aspect-square rounded-3xl overflow-hidden group">
+    <!-- REDEEM -->
+    <div id="redeem" class="group bg-gradient-to-br from-black to-gray-900 text-white 
+                rounded-3xl p-10 shadow-xl 
+                hover:-translate-y-2 transition-all duration-500">
 
-        <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop"
-             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
-      
-        <div class="absolute inset-0 bg-black/65"></div>
-      
-        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
-      
-          <div class="space-y-4">
-            <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
-              🤝
-            </div>
-      
-            <h2 class="font-display text-3xl font-semibold">
-              Partner With Us
-            </h2>
-      
-            <p class="text-white/80 leading-relaxed">
-              Join our expanding retail ecosystem and integrate secure
-              gift card validation directly into your store or outlet.
-            </p>
-          </div>
-      
-          <a href="#contact"
-            class="bg-white text-black px-6 py-3 rounded-2xl font-medium w-fit hover:bg-gray-200 transition">
-            Become a Partner
-          </a>
-      
-        </div>
+      <div class="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur 
+                  flex items-center justify-center mb-8 transition group-hover:scale-110">
+        <i data-lucide="wallet"></i>
       </div>
-  
-      <div class="relative aspect-square rounded-3xl overflow-hidden group">
 
-        <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop"
-             class="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-105" />
-      
-        <div class="absolute inset-0 bg-black/70"></div>
-      
-        <div class="relative z-10 h-full p-10 flex flex-col justify-between text-white">
-      
-          <div class="space-y-4">
-            <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center">
-              🏢
-            </div>
-      
-            <h2 class="font-display text-3xl font-semibold">
-              About Us
-            </h2>
-      
-            <p class="text-white/80 leading-relaxed">
-              We are building a trusted physical gift card ecosystem
-              powered by secure in-store validation and structured
-              retail integration across Nigeria.
-            </p>
-          </div>
-      
-          <span class="text-white/70 text-sm">
-            Secure • Verified • Scalable
-          </span>
-      
-        </div>
-      </div>
-  
+      <h3 class="text-2xl font-semibold mb-4">
+        Redeem Gift Cards
+      </h3>
+
+      <p class="text-white/70 leading-relaxed mb-8">
+        Validate and redeem balances through our trusted
+        retail-integrated processing system.
+      </p>
+
+      <span class="text-sm text-white/50">
+        Available at partner stores
+      </span>
+
     </div>
-  
-  </section>
+
+  </div>
+
+
+  <!-- SECOND ROW -->
+  <div class="grid md:grid-cols-2 gap-8 mt-8">
+
+    <!-- PARTNER -->
+    <div id="partner" class="group bg-gray-50 rounded-3xl p-10 border border-gray-100
+                hover:shadow-xl hover:-translate-y-2 transition-all duration-500">
+
+      <div class="w-14 h-14 rounded-2xl bg-black text-white 
+                  flex items-center justify-center mb-8 transition group-hover:rotate-6">
+        <i data-lucide="handshake"></i>
+      </div>
+
+      <h3 class="text-2xl font-semibold mb-4">
+        Partner With Us
+      </h3>
+
+      <p class="text-gray-600 leading-relaxed mb-8">
+        Integrate secure gift card validation into your retail
+        infrastructure and grow with us.
+      </p>
+
+      <a href="#contact"
+         class="inline-flex items-center gap-2 font-medium text-black hover:gap-4 transition-all">
+        Become a Partner →
+      </a>
+
+    </div>
+
+    <!-- ABOUT -->
+    <div id="about" class="group bg-white rounded-3xl p-10 border border-gray-100 shadow-sm
+                hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+
+      <div class="w-14 h-14 rounded-2xl bg-black text-white 
+                  flex items-center justify-center mb-8 transition group-hover:scale-110">
+        <i data-lucide="building-2"></i>
+      </div>
+
+      <h3 class="text-2xl font-semibold mb-4">
+        About Us
+      </h3>
+
+      <p class="text-gray-600 leading-relaxed mb-8">
+        We are building a secure and scalable physical gift card
+        ecosystem powered by structured in-store validation.
+      </p>
+
+      <span class="text-sm text-gray-400">
+        Secure • Verified • Scalable
+      </span>
+
+    </div>
+
+  </div>
+
+</section>
   <section class="bg-black text-white py-16">
 
     <div class="max-w-7xl mx-auto px-6">
@@ -491,9 +488,22 @@ tailwind.config = {
   </footer>
   
   <script>
-  document.getElementById('menuBtn')?.addEventListener('click', function(){
-    document.getElementById('mobileMenu')?.classList.toggle('hidden');
-  });
+const menuBtn = document.getElementById('menuBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+const closeMenu = document.getElementById('closeMenu');
+
+function openMenu() {
+  mobileMenu.classList.remove('-translate-y-full');
+  document.body.classList.add('overflow-hidden'); // prevents background scroll
+}
+
+function closeMobileMenu() {
+  mobileMenu.classList.add('-translate-y-full');
+  document.body.classList.remove('overflow-hidden');
+}
+
+menuBtn?.addEventListener('click', openMenu);
+closeMenu?.addEventListener('click', closeMobileMenu);
   
   function validateCard(){
     const code = document.getElementById('cardCode').value.trim();
@@ -537,7 +547,15 @@ tailwind.config = {
       }
     });
   }
+  document.querySelectorAll('#mobileMenu a').forEach(link => {
+  link.addEventListener('click', () => {
+    mobileMenu.classList.add('-translate-y-full');
+    document.body.classList.remove('overflow-hidden');
+  });
+});
   </script>
-
+<script>
+  lucide.createIcons();
+</script>
 </body>
 </html>
