@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>trinfelly</title>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -14,13 +13,10 @@
 tailwind.config = {
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'sans-serif']
-      },
+    
       colors: {
         moon: {
-   DEFAULT: '#1E2A78',   
+   DEFAULT: '#141424fb',   
    light: '#E6EBFF'
 }
       }
@@ -70,19 +66,22 @@ tailwind.config = {
 }
 html {
   scroll-behavior: smooth;
+  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
 }
+
 </style>
 </head>
 
-<body class="bg-white text-gray-900 font-sans antialiased">
+<body class="bg-white text-gray-900 font-sans antialiased" 
+>
 
 <!-- HEADER -->
 <header class="w-full border-b border-gray-100 bg-white/90 backdrop-blur sticky top-0 z-50">
-<div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+<div class="max-w-7xl mx-auto px-4 py-2 flex justify-between items-center">
 
   <div class="flex items-center gap-">
-    <img src="https://i.ibb.co/bjRxJmLt/16949-DE7-7-DBD-475-A-8720-863-D3-E946-C25.png" class="w-8 h-8" />
-    <span class="font-display text-lg font-semibold tracking-tight text-gray-500">trinfelly</span>
+    <img src="logo_transparent.png" class="w-10 h-10" />
+    <span class="font-display text-lg font-bold tracking-tight text-gray-500">trinfelly</span>
   </div>
 
   <!-- Desktop Nav -->
@@ -117,7 +116,7 @@ html {
   <!-- Top Bar Inside Menu -->
   <div class="flex justify-between items-center px-6 py-6 border-b">
     <div class="flex items-center gap-">
-      <img src="https://i.ibb.co/bjRxJmLt/16949-DE7-7-DBD-475-A-8720-863-D3-E946-C25.png" class="w-8 h-8" />
+      <img src="trinfelly.png" class="w-8 h-8" />
       <span class="font-display text-lg font-semibold tracking-tight text-gray-500">trinfelly</span>
     </div>
 
@@ -430,6 +429,107 @@ html {
     </div>
 
   </div>
+</section>
+<section id="contact" class="bg-gray-50 pb-24 pt-16 relative">
+
+  <!-- Inner Container Controls Width -->
+  <div class="max-w-6xl mx-auto px-6">
+
+    <!-- Heading -->
+    <div class="text-center mb-20">
+      <h2 class="text-4xl md:text-4xl font-semibold tracking-tight">
+        Contact Us
+      </h2>
+      <p class="text-gray-500 mt-4 max-w-xl mx-auto">
+        Have questions about gift card validation or partnerships?
+        Send us a message and our team will respond promptly.
+      </p>
+    </div>
+
+    <!-- Grid Layout -->
+    <div class="grid md:grid-cols-2 gap-12 items-start">
+
+      <!-- Left Info Card -->
+      <div class="bg-black text-white rounded-3xl p-10 shadow-2xl space-y-8">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+            <i data-lucide="mail"></i>
+          </div>
+          <div>
+            <h4 class="font-semibold text-lg">Email</h4>
+            <p class="text-white/60">support@giftcardecosystem.com</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+            <i data-lucide="phone"></i>
+          </div>
+          <div>
+            <h4 class="font-semibold text-lg">Phone</h4>
+            <p class="text-white/60">+234 800 000 0000</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+            <i data-lucide="map-pin"></i>
+          </div>
+          <div>
+            <h4 class="font-semibold text-lg">Location</h4>
+            <p class="text-white/60">Lagos, Nigeria</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Contact Form -->
+      <form class="bg-white rounded-3xl p-10 shadow-xl border border-gray-100 space-y-8">
+        <!-- Name -->
+        <div>
+          <label class="text-sm font-medium text-gray-600">Full Name</label>
+          <div class="mt-2 relative">
+            <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+            <input type="text"
+              class="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-black focus:ring-2 focus:ring-black/10 outline-none transition"
+              placeholder="Enter your full name">
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label class="text-sm font-medium text-gray-600">Email Address</label>
+          <div class="mt-2 relative">
+            <i data-lucide="mail" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5"></i>
+            <input type="email"
+              class="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-black focus:ring-2 focus:ring-black/10 outline-none transition"
+              placeholder="Enter your email address">
+          </div>
+        </div>
+
+        <!-- Message -->
+        <div>
+          <label class="text-sm font-medium text-gray-600">Message</label>
+          <div class="mt-2 relative">
+            <i data-lucide="message-square" class="absolute left-4 top-6 text-gray-400 w-5 h-5"></i>
+            <textarea rows="5"
+              class="w-full pl-12 pr-4 py-4 rounded-2xl bg-gray-50 border border-gray-200 focus:border-black focus:ring-2 focus:ring-black/10 outline-none transition resize-none"
+              placeholder="Type your message here..."></textarea>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit"
+          class="w-full bg-black text-white py-4 rounded-2xl font-medium
+                 hover:bg-gray-900 transition-all duration-300
+                 hover:shadow-2xl hover:-translate-y-1">
+          Send Message
+        </button>
+      </form>
+
+    </div>
+
+  </div>
 
 </section>
   <section class="bg-black text-white py-16">
@@ -480,7 +580,7 @@ html {
   
   </section>
   <!-- FOOTER -->
-  <footer class="border-t border-gray-100 py-8 mt-12">
+  <footer class="border-t border-gray-100 py-8 ">
     <div class="max-w-7xl mx-auto px-6 text-sm text-gray-500 text-center md:flex md:justify-between md:items-center">
       <span>© 2026 trinfelly.com All rights reserved.</span>
       <span>Secure Gift Card Infrastructure</span>
