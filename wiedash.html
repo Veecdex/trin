@@ -1,0 +1,1924 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiesel Merchant · Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Space Grotesk"', 'sans-serif'],
+          sans: ['"Inter"', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace'],
+        },
+        colors: {
+          ink: '#0A0A0B',
+          paper: '#FFFFFF',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  * { -webkit-font-smoothing: antialiased; }
+  body { font-family: 'Inter', sans-serif; background:#F5F5F4; }
+  .font-display { font-family: 'Space Grotesk', sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height:8px; }
+  ::-webkit-scrollbar-thumb { background: #D4D4D4; border-radius: 8px; }
+  .ticket-dash { background-image: repeating-linear-gradient(to bottom, #D4D4D4 0 6px, transparent 6px 14px); width:1px; }
+  .fade-in { animation: fadeIn .25s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px);} to {opacity:1; transform:translateY(0);} }
+  .nav-item.active { background:#fff; color:#0A0A0B; }
+  .nav-item.active .nav-dot { background:#16A34A; }
+  input:focus, select:focus, textarea:focus { outline: none; box-shadow: 0 0 0 2px #0A0A0B; }
+  .strike { text-decoration: line-through; text-decoration-color: #16A34A; text-decoration-thickness: 2px; }
+  .badge-dot::before { content:''; display:inline-block; width:6px; height:6px; border-radius:999px; margin-right:6px; }
+  @media print {
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea { position: fixed; top:0; left:0; width:100%; }
+  }
+  [data-lucide] { width:1em; height:1em; }
+  #topLoader { position:fixed; top:0; left:0; height:3px; width:0%; background:linear-gradient(90deg,#0A0A0B,#16A34A); z-index:1000; transition:width .25s ease, opacity .3s ease; opacity:0; }
+  #topLoader.active { opacity:1; }
+  .toast-item { pointer-events:auto; }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-10px) scale(.98);} to {opacity:1; transform:translateY(0) scale(1);} }
+  @keyframes toastBar { from { width:100%; } to { width:0%; } }
+  .toast-bar { animation: toastBar 3.2s linear forwards; }
+  .modal-backdrop { animation: fadeIn .15s ease both; }
+  .modal-card { animation: modalIn .18s cubic-bezier(.2,.8,.3,1) both; }
+  @keyframes modalIn { from { opacity:0; transform:translateY(8px) scale(.97);} to {opacity:1; transform:translateY(0) scale(1);} }
+  .img-slot { aspect-ratio:1/1; }
+  .spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite; display:inline-block; }
+  .spinner-dark { border:2px solid rgba(10,10,11,.15); border-top-color:#0A0A0B; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #offlineBanner { position:fixed; top:0; left:0; right:0; z-index:1100; }
+  body.is-offline #root { pointer-events:none; user-select:none; filter:grayscale(.25) opacity(.88); }
+  .dashboard-shell { transform-origin: top center; }
+  @media (max-width: 767px) {
+    html { font-size: 14px; }
+    body { overflow-x: hidden; }
+    .dashboard-shell {
+      transform: none;
+      width: 100%;
+      min-width: 100%;
+      margin: 0;
+      flex-direction: row;
+      align-items: stretch;
+    }
+    .dashboard-shell aside { width: 68px !important; min-width:68px !important; }
+    .dashboard-shell aside .sidebar-label,
+    .dashboard-shell aside .sidebar-business,
+    .dashboard-shell aside .sidebar-status,
+    .dashboard-shell aside .sidebar-account,
+    .dashboard-shell aside .sidebar-logout-text,
+    .dashboard-shell aside .sidebar-switch-text,
+    .dashboard-shell aside .sidebar-nav-label { display:none !important; }
+    .dashboard-shell aside nav { padding-inline: 0.35rem; }
+    .dashboard-shell aside nav a { justify-content:center; padding-left: 0 !important; padding-right: 0 !important; }
+    .dashboard-shell aside nav a span { margin: 0 !important; }
+    .dashboard-shell main { min-width: 0; }
+    .dashboard-shell main > div { padding: 10px !important; max-width: none !important; }
+    .dashboard-shell [class*="grid-cols-"] { grid-template-columns: 1fr !important; }
+    .dashboard-shell .mobile-stack { display: flex !important; flex-direction: column !important; }
+    .dashboard-shell .mobile-stack > * { width: 100% !important; max-width: 100% !important; }
+    .dashboard-shell .page-title { font-size: 1.05rem !important; line-height: 1.2 !important; }
+    .dashboard-shell .page-subtitle { font-size: .74rem !important; }
+    .dashboard-shell .compact-mobile { font-size: .68rem !important; }
+  }
+</style>
+</head>
+<body class="text-ink">
+
+<div id="topLoader"></div>
+<div id="offlineBanner" class="hidden">
+  <div class="bg-red-600 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 flex items-center justify-center gap-2 text-center">
+    <i data-lucide="wifi-off" class="w-4 h-4 shrink-0"></i>
+    <span>You don't have an active internet connection. This page is read-only until you're back online.</span>
+  </div>
+</div>
+<div id="root"></div>
+<div id="toastHost" class="fixed top-5 right-5 z-[999] flex flex-col gap-2 w-[calc(100%-2.5rem)] max-w-sm"></div>
+<div id="modalHost"></div>
+<div id="printArea" class="hidden"></div>
+
+<script>
+/* =========================================================
+   WIESEL MERCHANT — frontend-only demo (localStorage as DB)
+   ========================================================= */
+
+const DB_KEY = 'wiesel_db_v1';
+const uid = (p='id') => p + '_' + Math.random().toString(36).slice(2,9);
+const now = () => Date.now();
+const money = n => '₦' + Number(n||0).toLocaleString('en-NG', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = t => new Date(t).toLocaleString('en-NG', {dateStyle:'medium', timeStyle:'short'});
+const fmtDay = t => new Date(t).toLocaleDateString('en-NG', {month:'short', day:'numeric'});
+const initials = s => (s||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+function genMerchantId(){
+  const seq = String((db.businesses.length||0) + 100001).slice(-6);
+  return `WSL-MERCHANT-${seq}`;
+}
+
+function loadDB(){
+  const raw = localStorage.getItem(DB_KEY);
+  if(!raw) return { businesses: [], session: null };
+  try { return JSON.parse(raw); } catch(e){ return { businesses: [], session: null }; }
+}
+function saveDB(db){
+  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  catch(e){
+    if(e && (e.name === 'QuotaExceededError' || String(e).toLowerCase().includes('quota'))){
+      throw new Error('Storage limit reached.');
+    }
+    throw e;
+  }
+}
+
+function icon(name, cls=''){ return `<i data-lucide="${name}" class="${cls}"></i>`; }
+function refreshIcons(){ try{ lucide.createIcons(); }catch(e){} }
+
+async function fileToCompressedDataURL(file, maxSide = 1600, quality = 0.9){
+  const img = await new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const el = new Image();
+    el.onload = () => { URL.revokeObjectURL(url); resolve(el); };
+    el.onerror = (err) => { URL.revokeObjectURL(url); reject(err); };
+    el.src = url;
+  });
+  const w = img.naturalWidth || img.width || 1;
+  const h = img.naturalHeight || img.height || 1;
+  const scale = Math.min(1, maxSide / Math.max(w, h));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', quality);
+}
+
+let loaderTimer = null;
+function showLoader(){
+  const el = document.getElementById('topLoader');
+  clearTimeout(loaderTimer);
+  el.style.transition = 'none';
+  el.style.width = '0%';
+  el.classList.add('active');
+  requestAnimationFrame(()=>{ el.style.transition='width .35s ease, opacity .3s ease'; el.style.width='75%'; });
+}
+function hideLoader(){
+  const el = document.getElementById('topLoader');
+  el.style.width = '100%';
+  loaderTimer = setTimeout(()=>{ el.classList.remove('active'); el.style.width='0%'; }, 250);
+}
+
+function toast(msg, kind='default'){
+  const host = document.getElementById('toastHost');
+  const el = document.createElement('div');
+  const toastKinds = {
+    default: { bar:'bg-neutral-800', ic:'info', ic_wrap:'bg-neutral-100 text-neutral-700' },
+    success: { bar:'bg-green-600', ic:'check-circle-2', ic_wrap:'bg-green-100 text-green-700' },
+    error:   { bar:'bg-red-600',   ic:'alert-circle',  ic_wrap:'bg-red-100 text-red-700' },
+    info:    { bar:'bg-blue-600',  ic:'bell',           ic_wrap:'bg-blue-100 text-blue-700' },
+  };
+  const c = toastKinds[kind] || toastKinds.default;
+  el.className = 'toast-item bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden relative';
+  el.style.animation = 'toastIn .25s cubic-bezier(.2,.8,.3,1) both';
+  el.innerHTML = `
+    <div class="flex items-start gap-3 px-4 py-3.5">
+      <div class="w-7 h-7 rounded-full ${c.ic_wrap} flex items-center justify-center shrink-0">${icon(c.ic,'w-4 h-4')}</div>
+      <p class="text-sm font-medium leading-snug pt-0.5">${msg}</p>
+      <button onclick="this.closest('.toast-item').remove()" class="ml-auto shrink-0 text-neutral-300 hover:text-neutral-500">${icon('x','w-4 h-4')}</button>
+    </div>
+    <div class="h-0.5 ${c.bar} toast-bar"></div>`;
+  host.appendChild(el);
+  refreshIcons();
+  setTimeout(()=>{ el.style.transition='opacity .3s, transform .3s'; el.style.opacity='0'; el.style.transform='translateX(8px)'; setTimeout(()=>el.remove(),300); }, 3400);
+}
+
+/* ---- custom confirm modal (replaces native confirm()) ---- */
+function showConfirm({ title='Are you sure?', message='', confirmText='Confirm', cancelText='Cancel', danger=false, onConfirm }){
+  const host = document.getElementById('modalHost');
+  host.innerHTML = `
+  <div class="fixed inset-0 z-[998] flex items-center justify-center p-4 modal-backdrop" style="background:rgba(10,10,11,.4)">
+    <div class="modal-card bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center mb-4 ${danger?'bg-red-100 text-red-600':'bg-neutral-100 text-neutral-700'}">${icon(danger?'triangle-alert':'help-circle','w-5 h-5')}</div>
+      <h3 class="font-display font-bold text-lg">${title}</h3>
+      <p class="text-sm text-neutral-500 mt-2">${message}</p>
+      <div class="flex gap-2 mt-6">
+        <button id="modalCancelBtn" class="flex-1 border border-neutral-300 rounded-lg py-2.5 text-sm font-semibold hover:bg-neutral-50">${cancelText}</button>
+        <button id="modalConfirmBtn" class="flex-1 rounded-lg py-2.5 text-sm font-semibold text-white ${danger?'bg-red-600 hover:bg-red-700':'bg-ink hover:bg-neutral-800'}">${confirmText}</button>
+      </div>
+    </div>
+  </div>`;
+  refreshIcons();
+  document.getElementById('modalCancelBtn').onclick = closeConfirm;
+  document.getElementById('modalConfirmBtn').onclick = ()=>{ closeConfirm(); onConfirm && onConfirm(); };
+}
+function closeConfirm(){ document.getElementById('modalHost').innerHTML=''; }
+
+function newBusiness({email, businessName, password}){
+  return {
+    id: uid('biz'),
+    email, businessName, password,
+    slug: businessName.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20) || uid('store'),
+    createdAt: now(),
+    profile: { address:'', phone:'', ownerName:'', industry:'', logo:'', openHour:'', closeHour:'' },
+    bank: { bankName:'', accountNumber:'', accountName:'', otpAttempts:0, locked:false },
+    branding: { active:true, bannerText:'Welcome to our store — quality you can trust.', primary:'#0A0A0B', secondary:'#16A34A' },
+    products: [],
+    orders: [],
+    messages: [],
+    staff: [],
+    auditLog: [],
+    onboardingDismissed: false,
+  };
+}
+
+function onboardingSteps(biz){
+  const p = biz.profile;
+  return [
+    { key:'identity', label:'Business name & email confirmed', done:true, hint:'Done at signup', route:'#/profile' },
+    { key:'contact', label:'Address, phone & owner name', done: !!(p.address && p.phone && p.ownerName), hint:'Business Profile', route:'#/dashboard/profile' },
+    { key:'products', label:'Add at least 5 products', done: biz.products.length>=5, hint:`${biz.products.length}/5 added`, route:'#/dashboard/products' },
+    { key:'bank', label:'Set up payout bank account', done: !!(biz.bank.bankName && biz.bank.accountNumber), hint:'Finance', route:'#/dashboard/finance' },
+    { key:'hours', label:'Opening & closing hours', done: !!(p.openHour && p.closeHour), hint:'Business Profile', route:'#/dashboard/profile' },
+    { key:'branding', label:'Logo & brand colors', done: !!p.logo && biz.branding.primary!=='' , hint:'Branding', route:'#/dashboard/branding' },
+  ];
+}
+function onboardingComplete(biz){ return onboardingSteps(biz).every(s=>s.done); }
+
+function staffCan(biz, pageKey){
+  if(!state.staffId) return true; // owner has full access
+  const staff = biz.staff.find(s=>s.id===state.staffId);
+  if(!staff) return false;
+  if(pageKey==='overview') return true; // everyone can see overview
+  return (staff.pages||[]).includes(pageKey);
+}
+function logAction(biz, text){
+  const actor = state.staffId ? (biz.staff.find(s=>s.id===state.staffId)?.name || 'Staff') : (biz.profile.ownerName || 'Owner');
+  biz.auditLog.unshift({ id: uid('log'), actor, text, at: now() });
+  biz.auditLog = biz.auditLog.slice(0,100);
+}
+
+/* ---------------- App State ---------------- */
+let db = loadDB();
+let state = { route: location.hash || '#/auth', bizId: db.session?.bizId || null, staffId: db.session?.staffId || null, loggingOut:false, showLogoutConfirm:false };
+
+function currentBiz(){ return db.businesses.find(b=>b.id===state.bizId); }
+function persistAndRender(){ saveDB(db); render(); }
+
+function goTo(hash){
+  // Keep state.route in sync even when the current hash is already the target.
+  state.route = hash;
+  if(location.hash === hash){ render(); }
+  else { location.hash = hash; }
+}
+function login(bizId, staffId=null){
+  state.bizId = bizId; state.staffId = staffId;
+  db.session = { bizId, staffId };
+  saveDB(db);
+  goTo('#/dashboard/overview');
+}
+function requestLogout(){
+  const biz = currentBiz();
+  showConfirm({
+    title: 'Logout now?',
+    message: 'Are you sure the merchant wants to log out of this dashboard?',
+    confirmText: 'Logout',
+    cancelText: 'Cancel',
+    danger: true,
+    onConfirm: performLogout
+  });
+}
+function performLogout(){
+  state.loggingOut = true;
+  render();
+  showLoader();
+  requestAnimationFrame(()=>{
+    const biz = currentBiz();
+    if(biz){ logAction(biz, 'Logged out'); saveDB(db); }
+    state.bizId = null;
+    state.staffId = null;
+    db.session = null;
+    saveDB(db);
+    goTo('#/auth');
+    state.loggingOut = false;
+    hideLoader();
+  });
+}
+
+window.addEventListener('hashchange', ()=>{ state.route = location.hash; render(); });
+
+/* ================= AUTH VIEWS ================= */
+function viewAuth(){
+  const mode = state.authMode || 'signup';
+  return `
+  <div class="min-h-screen grid lg:grid-cols-2">
+    <div class="hidden lg:flex flex-col justify-between bg-ink text-white p-12 relative overflow-hidden">
+      <div class="relative z-10">
+        <div class="font-display text-2xl font-bold tracking-tight">Wiesel</div>
+        <p class="text-white/50 text-sm mt-1">Merchant Console</p>
+      </div>
+      <div class="relative z-10 max-w-sm">
+        <p class="font-display text-3xl leading-snug">Set up your store once. Sell everywhere, every day.</p>
+        <p class="text-white/50 text-sm mt-4">Onboarding takes about ten minutes — address, five products, and a payout account, then you're ready for sale.</p>
+      </div>
+      <div class="relative z-10 text-white/30 text-xs font-mono">Wiesel.com/store/your-business</div>
+      <div class="absolute -right-24 -bottom-24 w-96 h-96 rounded-full border border-white/10"></div>
+      <div class="absolute -right-10 -bottom-40 w-96 h-96 rounded-full border border-white/10"></div>
+    </div>
+    <div class="flex items-center justify-center p-6 sm:p-12">
+      <div class="w-full max-w-sm">
+        <div class="lg:hidden font-display text-xl font-bold mb-8">Wiesel</div>
+        <div class="flex gap-1 mb-8 bg-neutral-200/60 p-1 rounded-lg w-fit text-sm font-medium">
+          <button onclick="setAuthMode('signup')" class="px-4 py-1.5 rounded-md transition ${mode==='signup'?'bg-white shadow text-ink':'text-neutral-500'}">Create store</button>
+          <button onclick="setAuthMode('login')" class="px-4 py-1.5 rounded-md transition ${mode==='login'?'bg-white shadow text-ink':'text-neutral-500'}">Log in</button>
+        </div>
+        ${mode==='signup' ? signupForm() : loginForm()}
+        <p class="text-xs text-neutral-400 mt-6">Staff members log in from inside the dashboard once the store owner has signed in on this device.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function signupForm(){
+  return `
+  <form onsubmit="return doSignup(event)" class="space-y-4">
+    <h1 class="font-display text-2xl font-bold mb-1">Create your store</h1>
+    <p class="text-sm text-neutral-500 mb-6">Frontend demo — everything is saved to this browser's local storage.</p>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Business name</label>
+      <input name="businessName" required class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Vikky Fabrics">
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Business email</label>
+      <input name="email" type="email" required class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="you@business.com">
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Confirm business email</label>
+      <input name="confirmEmail" type="email" required class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="you@business.com">
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Set password</label>
+      <input name="password" type="password" required minlength="6" class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Minimum 6 characters">
+    </div>
+    <button class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-neutral-800 transition mt-2">Create store account</button>
+  </form>`;
+}
+function loginForm(){
+  return `
+  <form onsubmit="return doLogin(event)" class="space-y-4">
+    <h1 class="font-display text-2xl font-bold mb-1">Welcome back</h1>
+    <p class="text-sm text-neutral-500 mb-6">Log in to your merchant dashboard.</p>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Business email</label>
+      <input name="email" type="email" required class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    </div>
+    <div>
+      <label class="text-xs font-semibold text-neutral-600">Password</label>
+      <input name="password" type="password" required class="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    </div>
+    <button class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-neutral-800 transition mt-2">Log in</button>
+  </form>`;
+}
+function setAuthMode(m){ state.authMode = m; render(); }
+
+function doSignup(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const email = f.get('email').trim().toLowerCase();
+  const businessName = f.get('businessName').trim();
+  if(email !== f.get('confirmEmail').trim().toLowerCase()){ toast('Business emails do not match', 'error'); return false; }
+  if(db.businesses.some(b=>b.email===email)){ toast('An account with this email already exists', 'error'); return false; }
+  if(db.businesses.some(b=>b.businessName.trim().toLowerCase()===businessName.toLowerCase())){ toast('That business name is already taken. Please choose a unique name.', 'error'); return false; }
+  const biz = newBusiness({ email, businessName, password: f.get('password') });
+  biz.merchantId = genMerchantId();
+  logAction(biz, 'Store account created');
+  db.businesses.push(biz);
+  saveDB(db);
+  toast('Store created. Let us finish setting it up.', 'success');
+  login(biz.id);
+  return false;
+}
+function doLogin(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const email = f.get('email').trim().toLowerCase();
+  const biz = db.businesses.find(b=>b.email===email);
+  if(!biz || biz.password !== f.get('password')){ toast('Incorrect email or password', 'error'); return false; }
+  logAction(biz, 'Logged in'); saveDB(db);
+  login(biz.id);
+  return false;
+}
+/* Staff login from WITHIN the dashboard (business already known via session) */
+function staffLoginFromDashboard(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const f = new FormData(e.target);
+  const staff = biz.staff.find(s=>s.email===f.get('email').trim().toLowerCase());
+  if(!staff || staff.password !== f.get('password')){ toast('Incorrect staff email or password', 'error'); return false; }
+  if(staff.disabled){ toast('This staff account is disabled', 'error'); return false; }
+  logAction(biz, `${staff.name} logged in`);
+  state.staffId = staff.id;
+  db.session = { bizId: biz.id, staffId: staff.id };
+  saveDB(db);
+  toast(`Signed in as ${staff.name}`, 'success');
+  state.showStaffSwitcher = false;
+  goTo('#/dashboard/overview');
+  return false;
+}
+
+/* ================= DASHBOARD SHELL ================= */
+const NAV = [
+  { key:'overview', label:'Overview', icon:'layout-dashboard' },
+  { key:'messages', label:'Messages', icon:'message-circle' },
+  { key:'sales', label:'Sales', icon:'trending-up' },
+  { key:'orders', label:'Orders', icon:'package' },
+  { key:'finance', label:'Finance', icon:'wallet' },
+  { key:'customers', label:'Customers', icon:'users' },
+  { key:'branding', label:'Branding', icon:'sparkles' },
+  { key:'products', label:'Products', icon:'shopping-bag' },
+  { key:'profile', label:'Business Profile', icon:'store' },
+  { key:'staff', label:'Staff', icon:'user-cog' },
+];
+
+function viewDashboard(){
+  const biz = currentBiz();
+  if(!biz){ location.hash = '#/auth'; return ''; }
+  const seg = state.route.split('/')[2] || 'overview';
+  const complete = onboardingComplete(biz);
+  const staffUser = state.staffId ? biz.staff.find(s=>s.id===state.staffId) : null;
+  const visibleNav = NAV.filter(n => staffCan(biz, n.key));
+
+  const pageMap = {
+    overview: pageOverview, messages: pageMessages, sales: pageSales, orders: pageOrders,
+    finance: pageFinance, customers: pageCustomers, branding: pageBranding, products: pageProducts,
+    profile: pageProfile, staff: pageStaff,
+  };
+  const pageFn = pageMap[seg] || pageOverview;
+  const allowed = staffCan(biz, seg);
+
+  return `
+  <div class="min-h-screen flex dashboard-shell">
+    <aside class="w-60 shrink-0 bg-ink text-white flex flex-col h-screen sticky top-0">
+      <div class="px-5 py-5 border-b border-white/10 shrink-0">
+        <div class="font-display text-lg font-bold sidebar-label">Wiesel Commerce</div>
+        <div class="text-white/40 text-xs mt-0.5 truncate sidebar-business">${biz.businessName}</div>
+      </div>
+      <div class="px-5 py-3 shrink-0 sidebar-status">
+        <span class="text-xs font-medium inline-flex items-center ${complete?'text-green-400':'text-amber-400'}">
+          <span class="inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${complete?'bg-green-400':'bg-amber-400'}"></span>${complete?'Ready for sale':'Setting up'}
+        </span>
+      </div>
+      <nav class="flex-1 px-3 space-y-0.5 min-h-0">
+        ${visibleNav.map(n=>`
+          <a href="#/dashboard/${n.key}" class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-white/70 hover:bg-white/5 transition ${seg===n.key?'active':''}" title="${n.label}">
+            <span class="w-4 text-center opacity-80">${icon(n.icon,'w-[15px] h-[15px]')}</span><span class="sidebar-nav-label">${n.label}</span>
+          </a>`).join('')}
+      </nav>
+      <div class="px-3 py-3 border-t border-white/10 shrink-0">
+        ${staffUser
+          ? `<div class="px-2 pb-2 flex items-center gap-2 text-xs text-white/50 sidebar-account">
+               <div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-semibold text-white">${initials(staffUser.name)}</div>
+               <div class="truncate"><span class="text-white/80 font-medium">${staffUser.name}</span><br><span class="text-[10px]">Staff account</span></div>
+             </div>
+             <button onclick="openSwitchToOwner()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-white/70 hover:bg-white/5 transition" title="Switch to owner">
+               ${icon('repeat','w-[15px] h-[15px] opacity-80')}<span class="sidebar-switch-text">Switch to owner</span>
+             </button>`
+          : `<button onclick="openStaffSwitcher()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-white/70 hover:bg-white/5 transition" title="Switch to staff">
+               ${icon('users','w-[15px] h-[15px] opacity-80')}<span class="sidebar-switch-text">Switch to staff</span>
+             </button>`}
+        <button onclick="requestLogout()" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium text-white/70 hover:bg-white/5 transition" title="Logout">
+          ${icon('log-out','w-[15px] h-[15px] opacity-80')}<span class="sidebar-logout-text">Logout</span>
+        </button>
+      </div>
+    </aside>
+    <main class="flex-1 min-w-0 overflow-y-auto h-screen">
+      <div class="max-w-6xl mx-auto p-6 sm:p-8 fade-in">
+        ${allowed ? pageFn(biz) : noAccessPage(seg)}
+      </div>
+    </main>
+  </div>
+  ${state.loggingOut ? `<div class="fixed inset-0 z-[1002] flex items-center justify-center bg-white/75 backdrop-blur-sm"><div class="bg-white border border-neutral-200 shadow-2xl rounded-2xl px-5 py-4 flex items-center gap-3"><span class="spinner spinner-dark"></span><span class="text-sm font-semibold">Logging out…</span></div></div>` : ''}
+  ${state.showStaffSwitcher ? staffSwitcherModal(biz) : ''}
+  ${state.showOwnerSwitchBack ? ownerSwitchBackModal(biz) : ''}`;
+}
+
+function noAccessPage(seg){
+  const label = (NAV.find(n=>n.key===seg)||{}).label || 'this page';
+  return `<div class="max-w-md mx-auto text-center py-20">
+    <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">${icon('lock','w-6 h-6')}</div>
+    <h2 class="font-display text-xl font-bold">You don't have access</h2>
+    <p class="text-sm text-neutral-500 mt-2">Your staff account isn't permitted to open <strong>${label}</strong>. Ask the store owner to grant you access from the Staff page.</p>
+    <a href="#/dashboard/overview" class="inline-block mt-6 text-sm font-semibold bg-ink text-white rounded-full px-5 py-2.5">Back to Overview</a>
+  </div>`;
+}
+
+function openStaffSwitcher(){ state.showStaffSwitcher = true; render(); }
+function closeStaffSwitcher(){ state.showStaffSwitcher = false; render(); }
+function staffSwitcherModal(biz){
+  return `
+  <div class="fixed inset-0 z-[997] flex items-center justify-center p-4 modal-backdrop" style="background:rgba(10,10,11,.4)" onclick="if(event.target===this) closeStaffSwitcher()">
+    <div class="modal-card bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-display font-bold text-lg">Staff login</h3>
+        <button onclick="closeStaffSwitcher()" class="text-neutral-400 hover:text-ink">${icon('x','w-4 h-4')}</button>
+      </div>
+      <p class="text-sm text-neutral-500 mb-5">Log in with a staff email and password for ${biz.businessName}.</p>
+      ${biz.staff.length===0 ? `<p class="text-sm text-neutral-400 bg-neutral-50 rounded-lg p-3">No staff added yet.</p>` : `
+      <form onsubmit="return staffLoginFromDashboard(event)" class="space-y-3">
+        <input name="email" type="email" required placeholder="Staff email" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+        <input name="password" type="password" required placeholder="Password" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+        <button class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold">Log in as staff</button>
+      </form>`}
+    </div>
+  </div>`;
+}
+
+/* ---------- switch back to owner: password gate ---------- */
+function openSwitchToOwner(){ state.showOwnerSwitchBack = true; render(); }
+function closeSwitchToOwner(){ state.showOwnerSwitchBack = false; render(); }
+function ownerSwitchBackModal(biz){
+  return `
+  <div class="fixed inset-0 z-[997] flex items-center justify-center p-4 modal-backdrop" style="background:rgba(10,10,11,.4)" onclick="if(event.target===this) closeSwitchToOwner()">
+    <div class="modal-card bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-display font-bold text-lg">Confirm it's you</h3>
+        <button onclick="closeSwitchToOwner()" class="text-neutral-400 hover:text-ink">${icon('x','w-4 h-4')}</button>
+      </div>
+      <p class="text-sm text-neutral-500 mb-5">For security, enter the store owner's password to switch back.</p>
+      <form onsubmit="return confirmSwitchBackToOwner(event)" class="space-y-3">
+        <input name="password" type="password" required autofocus placeholder="Owner password" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+        <button class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold">Switch back to owner</button>
+      </form>
+    </div>
+  </div>`;
+}
+function confirmSwitchBackToOwner(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const pass = new FormData(e.target).get('password');
+  if(pass !== biz.password){ toast('Incorrect owner password', 'error'); return false; }
+  logAction(biz, `Switched back to owner`);
+  state.staffId = null;
+  state.showOwnerSwitchBack = false;
+  db.session = { bizId: biz.id, staffId: null };
+  saveDB(db);
+  toast('Switched back to owner', 'success');
+  goTo('#/dashboard/overview');
+  return false;
+}
+
+/* ---------- shared UI bits ---------- */
+function pageHeader(title, sub, right=''){
+  return `<div class="flex items-start justify-between mb-6 gap-4 flex-wrap">
+    <div class="min-w-0"><h1 class="font-display text-2xl font-bold page-title">${title}</h1>${sub?`<p class="text-sm text-neutral-500 mt-1 page-subtitle">${sub}</p>`:''}</div>
+    <div>${right}</div>
+  </div>`;
+}
+function card(inner, cls=''){ return `<div class="bg-white border border-neutral-200 rounded-xl ${cls}">${inner}</div>`; }
+function emptyState(msg, iconName='inbox'){ return `<div class="text-center py-16 text-neutral-400"><div class="mb-2 flex justify-center">${icon(iconName,'w-7 h-7')}</div><p class="text-sm">${msg}</p></div>`; }
+
+/* ================= OVERVIEW ================= */
+
+function salesBarChartHTML(days){
+  const max = Math.max(1, ...days.map(d=>d.total));
+  const width = 760;
+  const height = 300;
+  const padX = 44;
+  const padTop = 28;
+  const padBottom = 54;
+  const chartH = height - padTop - padBottom;
+  const chartW = width - padX * 2;
+  const gap = 18;
+  const barW = (chartW - gap * (days.length - 1)) / days.length;
+  const yTicks = [0, Math.ceil(max / 2), max];
+  const yPos = v => padTop + chartH - (v / max) * chartH;
+  return `
+  <div class="overflow-x-auto">
+    <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto block">
+      <defs>
+        <linearGradient id="wieselBar" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#111827"/>
+          <stop offset="100%" stop-color="#0A0A0B"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${width}" height="${height}" rx="20" fill="#ffffff"></rect>
+      ${yTicks.map(v => `
+        <line x1="${padX}" x2="${width - padX}" y1="${yPos(v)}" y2="${yPos(v)}" stroke="#E5E7EB" stroke-width="1"></line>
+        <text x="${padX - 10}" y="${yPos(v) + 4}" text-anchor="end" class="fill-neutral-400" font-size="11" font-family="Inter, sans-serif">${v === 0 ? '₦0' : money(v)}</text>
+      `).join('')}
+      ${days.map((d, i) => {
+        const x = padX + i * (barW + gap);
+        const barH = max ? (d.total / max) * chartH : 0;
+        const y = padTop + chartH - barH;
+        return `
+          <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 3)}" rx="12" fill="url(#wieselBar)"></rect>
+          <text x="${x + barW / 2}" y="${height - 28}" text-anchor="middle" class="fill-neutral-500" font-size="11" font-family="Inter, sans-serif">${d.label}</text>
+          <text x="${x + barW / 2}" y="${y - 8}" text-anchor="middle" class="fill-neutral-900" font-size="11" font-family="JetBrains Mono, monospace">${money(d.total)}</text>
+        `;
+      }).join('')}
+      <line x1="${padX}" x2="${width - padX}" y1="${padTop + chartH}" y2="${padTop + chartH}" stroke="#D1D5DB" stroke-width="1.2"></line>
+    </svg>
+  </div>`;
+}
+
+function pageOverview(biz){
+  const steps = onboardingSteps(biz);
+  const doneCount = steps.filter(s=>s.done).length;
+  const pct = Math.round(doneCount/steps.length*100);
+  const showChecklist = !onboardingComplete(biz) || !biz.onboardingDismissed===false && !onboardingComplete(biz);
+
+  const checklistBlock = !onboardingComplete(biz) ? `
+  <div class="border border-neutral-200 rounded-xl bg-white overflow-hidden mb-8">
+    <div class="flex">
+      <div class="p-6 flex-1">
+        <div class="flex items-center justify-between mb-1">
+          <div class="font-mono text-xs text-neutral-400">SETUP TICKET · ${biz.merchantId || biz.id}</div>
+          <div class="font-mono text-xs text-neutral-400">${doneCount}/${steps.length} complete</div>
+        </div>
+        <h2 class="font-display text-xl font-bold mb-1">Finish setting up ${biz.businessName}</h2>
+        <p class="text-sm text-neutral-500 mb-5">Complete every step below to activate your online store for customers.</p>
+        <div class="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden mb-6">
+          <div class="h-full bg-green-600 transition-all" style="width:${pct}%"></div>
+        </div>
+        <ul class="space-y-1">
+          ${steps.map(s=>`
+            <li class="flex items-center gap-3 py-2 ${s.done?'opacity-50':''}">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${s.done?'bg-green-600 text-white':'border-2 border-neutral-300'}">${s.done?icon('check','w-3 h-3'):''}</span>
+              <span class="text-sm font-medium flex-1 ${s.done?'strike':''}">${s.label}</span>
+              <span class="text-xs text-neutral-400 font-mono">${s.hint}</span>
+              ${!s.done?`<a href="${s.route}" class="text-xs font-semibold text-ink border border-neutral-300 rounded-full px-3 py-1 hover:bg-neutral-100 whitespace-nowrap inline-flex items-center gap-1">Go ${icon('arrow-right','w-3 h-3')}</a>`:''}
+            </li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  </div>` : `
+  <div class="border border-green-200 bg-green-50 rounded-xl p-5 mb-8 flex items-center gap-3">
+    <span class="text-green-600">${icon('check-circle-2','w-5 h-5')}</span>
+    <div><p class="font-semibold text-green-800 text-sm">Your store is ready for sale</p><p class="text-xs text-green-700/80">Customers can now find and buy from ${biz.businessName} at Wiesel.com/store/${biz.slug}</p></div>
+  </div>`;
+
+  const completedOrders = biz.orders.filter(o=>o.status==='completed');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const salesToday = completedOrders.filter(o=>o.paidAt>=today.getTime());
+  const revenueToday = salesToday.reduce((a,o)=>a+o.total,0);
+  const totalRevenue = completedOrders.reduce((a,o)=>a+o.total,0);
+  const days = [...Array(7)].map((_,i)=>{
+    const d = new Date(); d.setDate(d.getDate()-(6-i)); d.setHours(0,0,0,0);
+    const next = d.getTime()+86400000;
+    const total = completedOrders.filter(o=>o.paidAt>=d.getTime() && o.paidAt<next).reduce((a,o)=>a+o.total,0);
+    return { label: fmtDay(d.getTime()), total };
+  });
+  const max = Math.max(1, ...days.map(d=>d.total));
+
+  return `
+  ${pageHeader('Overview', 'Store performance at a glance.')}
+  ${checklistBlock}
+  <div class="grid sm:grid-cols-3 gap-4 mb-6">
+    ${statCard('Orders today', salesToday.length, 'package')}
+    ${statCard('Revenue today', money(revenueToday), 'trending-up')}
+    ${statCard('All-time revenue', money(totalRevenue), 'wallet')}
+  </div>
+  <div class="grid lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 bg-white border border-neutral-200 rounded-xl p-6">
+      <h3 class="font-semibold text-sm mb-6">Sales, last 7 days</h3>
+      ${salesBarChartHTML(days)}
+    </div>
+    <div class="bg-white border border-neutral-200 rounded-xl p-6">
+      <h3 class="font-semibold text-sm mb-4">Recent orders</h3>
+      ${biz.orders.slice(0,5).length? `<ul class="space-y-3">
+        ${biz.orders.slice(0,5).map(o=>`
+        <li class="flex items-center justify-between text-sm">
+          <div><p class="font-medium">${o.customerName}</p><p class="text-xs text-neutral-400">${fmtDay(o.createdAt)}</p></div>
+          <span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor(o.status)}">${o.status}</span>
+        </li>`).join('')}
+      </ul>` : `<p class="text-sm text-neutral-400">No orders yet.</p>`}
+    </div>
+  </div>
+  ${biz.orders.length===0 ? `<button onclick="seedDemoData()" class="mt-6 text-xs font-semibold text-neutral-400 hover:text-ink underline inline-flex items-center gap-1">${icon('sparkles','w-3.5 h-3.5')}Load sample data to preview this dashboard</button>`:''}
+  `;
+}
+function statCard(label, value, iconName){
+  return `<div class="bg-white border border-neutral-200 rounded-xl p-5">
+    <div class="flex items-center justify-between text-neutral-400 text-xs mb-3"><span>${label}</span><span>${icon(iconName,'w-4 h-4')}</span></div>
+    <div class="font-display text-2xl font-bold">${value}</div>
+  </div>`;
+}
+function statusColor(s){
+  return { completed:'bg-green-100 text-green-700', pending:'bg-amber-100 text-amber-700', cancelled:'bg-red-100 text-red-700' }[s] || 'bg-neutral-100 text-neutral-600';
+}
+
+/* ================= MESSAGES ================= */
+function pageMessages(biz){
+  const cutoff = now() - 24*3600*1000;
+  biz.messages = biz.messages.filter(m => m.lastAt >= cutoff);
+  const activeId = state.activeThread && biz.messages.find(m=>m.id===state.activeThread) ? state.activeThread : biz.messages[0]?.id;
+  const thread = biz.messages.find(m=>m.id===activeId);
+
+  return `
+  ${pageHeader('Messages', 'Conversations from Wiesel users. Threads disappear 24 hours after the last message.', `<button onclick="simulateMessage()" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5 hover:bg-neutral-100 inline-flex items-center gap-1.5">${icon('zap','w-3.5 h-3.5')}Simulate incoming message</button>`)}
+  <div class="grid md:grid-cols-3 gap-0 border border-neutral-200 rounded-xl bg-white overflow-hidden" style="min-height:480px">
+    <div class="border-r border-neutral-200 overflow-y-auto" style="max-height:600px">
+      ${biz.messages.length===0 ? emptyState('No messages in the last 24 hours') :
+        biz.messages.sort((a,b)=>b.lastAt-a.lastAt).map(m=>`
+        <button onclick="openThread('${m.id}')" class="w-full text-left px-4 py-3 border-b border-neutral-100 hover:bg-neutral-50 transition flex gap-3 items-start ${m.id===activeId?'bg-neutral-50':''}">
+          <div class="w-8 h-8 rounded-full bg-ink text-white text-xs flex items-center justify-center font-semibold shrink-0">${initials(m.customerName)}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex justify-between items-baseline"><p class="text-sm font-medium truncate">${m.customerName}</p><span class="text-[10px] text-neutral-400 shrink-0">${fmtDay(m.lastAt)}</span></div>
+            <p class="text-xs text-neutral-400 truncate">${m.chat[m.chat.length-1]?.text||''}</p>
+          </div>
+        </button>`).join('')}
+    </div>
+    <div class="md:col-span-2 flex flex-col">
+      ${thread ? `
+      <div class="px-5 py-3 border-b border-neutral-200 flex items-center justify-between">
+        <div><p class="text-sm font-semibold">${thread.customerName}</p><p class="text-xs text-neutral-400">Expires ${fmtDate(thread.lastAt + 24*3600*1000)}</p></div>
+      </div>
+      <div class="flex-1 p-5 space-y-3 overflow-y-auto" style="max-height:440px">
+        ${thread.chat.map(c=>`
+          <div class="flex ${c.from==='store'?'justify-end':'justify-start'}">
+            <div class="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm ${c.from==='store'?'bg-ink text-white rounded-br-sm':'bg-neutral-100 rounded-bl-sm'}">${c.text}</div>
+          </div>`).join('')}
+      </div>
+      <form onsubmit="return sendReply(event,'${thread.id}')" class="p-3 border-t border-neutral-200 flex gap-2">
+        <input name="text" required placeholder="Reply as ${biz.businessName}..." class="flex-1 border border-neutral-300 rounded-full px-4 py-2 text-sm">
+        <button class="bg-ink text-white rounded-full px-4 py-2 text-sm font-semibold">Send</button>
+      </form>` : `<div class="flex-1">${emptyState('Select a conversation')}</div>`}
+    </div>
+  </div>`;
+}
+function openThread(id){ state.activeThread = id; render(); }
+function sendReply(e, threadId){
+  e.preventDefault();
+  const biz = currentBiz();
+  const m = biz.messages.find(x=>x.id===threadId);
+  const text = new FormData(e.target).get('text');
+  m.chat.push({from:'store', text, at:now()});
+  m.lastAt = now();
+  logAction(biz, `Replied to ${m.customerName}`);
+  persistAndRender();
+  return false;
+}
+function simulateMessage(){
+  const biz = currentBiz();
+  const names = ['Adaeze Okonkwo','Tunde Bakare','Chiamaka Eze','Ibrahim Sule','Femi Adekunle'];
+  const texts = ['Hi, is this item still available?','Do you deliver to Lekki?','Can I get a discount on bulk orders?','What time do you close today?'];
+  const name = names[Math.floor(Math.random()*names.length)];
+  biz.messages.push({ id: uid('msg'), customerName: name, lastAt: now(), chat:[{from:'customer', text: texts[Math.floor(Math.random()*texts.length)], at: now()}] });
+  toast(`New message from ${name}`, 'info');
+  persistAndRender();
+}
+
+/* ================= SALES ================= */
+function pageSales(biz){
+  const sales = biz.orders.filter(o=>o.status==='completed').sort((a,b)=>b.paidAt-a.paidAt);
+  const total = sales.reduce((a,o)=>a+o.total,0);
+  return `
+  ${pageHeader('Sales', 'Every successful sale, with earnings clear from the product price.')}
+  <div class="grid sm:grid-cols-3 gap-4 mb-6">
+    ${statCard('Successful sales', sales.length, 'trending-up')}
+    ${statCard('Total earned', money(total), 'wallet')}
+    ${statCard('Avg. sale', money(sales.length? total/sales.length:0), 'divide')}
+  </div>
+  ${card(sales.length? `<div class="w-full overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
+    <th class="px-5 py-3 font-medium">Product</th><th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Price</th><th class="px-5 py-3 font-medium">Date</th></tr></thead>
+    <tbody>${sales.map(o=>`<tr class="border-b border-neutral-100 last:border-0">
+      <td class="px-5 py-3">${o.items.map(i=>i.name).join(', ')}</td>
+      <td class="px-5 py-3">${o.customerName}</td>
+      <td class="px-5 py-3 font-semibold">${money(o.total)}</td>
+      <td class="px-5 py-3 text-neutral-400">${fmtDate(o.paidAt)}</td>
+    </tr>`).join('')}</tbody></table></div>` : emptyState('No successful sales yet'))}
+  `;
+}
+
+/* ================= ORDERS ================= */
+function pageOrders(biz){
+  const activeId = state.activeOrder;
+  const order = biz.orders.find(o=>o.id===activeId);
+  if(order) return orderDetail(biz, order);
+  return `
+  ${pageHeader('Orders', 'Successful orders from online customers.', `<button onclick="simulateOrder()" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5 hover:bg-neutral-100 inline-flex items-center gap-1.5">${icon('zap','w-3.5 h-3.5')}Simulate order</button>`)}
+  ${card(biz.orders.length? `<div class="w-full overflow-x-auto"><table class="min-w-[760px] w-full text-sm">
+    <thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
+      <th class="px-5 py-3 font-medium">Order ID</th><th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Total</th><th class="px-5 py-3 font-medium">Status</th><th class="px-5 py-3 font-medium">Date</th></tr></thead>
+    <tbody>${biz.orders.map(o=>`
+      <tr class="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 cursor-pointer" onclick="openOrder('${o.id}')">
+        <td class="px-5 py-3 font-mono text-xs">${o.id.toUpperCase()}</td>
+        <td class="px-5 py-3">${o.customerName}</td>
+        <td class="px-5 py-3 font-semibold">${money(o.total)}</td>
+        <td class="px-5 py-3"><span class="text-xs font-semibold px-2 py-1 rounded-full ${statusColor(o.status)}">${o.status}</span></td>
+        <td class="px-5 py-3 text-neutral-400">${fmtDay(o.createdAt)}</td>
+      </tr>`).join('')}</tbody></table></div>` : emptyState('No orders yet'))}
+  `;
+}
+function openOrder(id){ state.activeOrder = id; render(); }
+function orderDetail(biz, o){
+  const link = o.status==='completed' ? '(expired — order completed)' : `https://delivery.wiesel.app/d/${o.deliveryCode}`;
+  return `
+  <button onclick="state.activeOrder=null; render()" class="text-sm text-neutral-500 mb-4 hover:text-ink inline-flex items-center gap-1">${icon('arrow-left','w-4 h-4')}Back to orders</button>
+  <div class="flex items-start justify-between mb-6 flex-wrap gap-4">
+    <div><h1 class="font-display text-2xl font-bold">Order ${o.id.toUpperCase()}</h1><p class="text-sm text-neutral-500 mt-1">Placed ${fmtDate(o.createdAt)}</p></div>
+    <span class="text-xs font-semibold px-3 py-1.5 rounded-full ${statusColor(o.status)}">${o.status}</span>
+  </div>
+  <div class="grid lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+      ${card(`<div class="p-5">
+        <h3 class="font-semibold text-sm mb-4">Items purchased</h3>
+        <div class="w-full overflow-x-auto"><table class="min-w-[540px] w-full text-sm"><tbody>
+        ${o.items.map(i=>`<tr class="border-b border-neutral-100 last:border-0"><td class="py-2">${i.name}</td><td class="py-2 text-neutral-400">x${i.qty}</td><td class="py-2 text-right font-medium">${money(i.price*i.qty)}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="flex justify-between pt-4 mt-2 border-t border-neutral-200 font-semibold"><span>Total</span><span>${money(o.total)}</span></div>
+      </div>`)}
+      ${card(`<div class="p-5">
+        <h3 class="font-semibold text-sm mb-3">Delivery link <span class="text-neutral-400 font-normal">— source of truth for order status</span></h3>
+        <div class="font-mono text-xs bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5 break-all">${link}</div>
+        ${o.status!=='completed' ? `<div class="flex gap-2 mt-3">
+          <button onclick="updateOrderStatus('${o.id}','completed')" class="text-xs font-semibold bg-green-600 text-white rounded-full px-3 py-1.5">Mark completed</button>
+          <button onclick="updateOrderStatus('${o.id}','cancelled')" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5">Cancel order</button>
+        </div>` : `<p class="text-xs text-neutral-400 mt-2">Link expired immediately once the order was completed.</p>`}
+      </div>`)}
+    </div>
+    <div class="space-y-6">
+      ${card(`<div class="p-5">
+        <h3 class="font-semibold text-sm mb-3">Customer</h3>
+        <p class="text-sm font-medium">${o.customerName}</p>
+        <p class="text-xs text-neutral-400 mt-0.5">${o.customerPhone||'—'}</p>
+        <p class="text-xs text-neutral-400 mt-3">Purchased at ${fmtDate(o.createdAt)}</p>
+      </div>`)}
+      ${card(`<div class="p-5">
+        <button onclick="generateReceipt('${o.id}')" class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold mb-2">Download receipt (PDF)</button>
+        <button onclick="sendReceiptToCustomer('${o.id}')" class="w-full border border-neutral-300 rounded-lg py-2.5 text-sm font-semibold">Send receipt via message</button>
+      </div>`)}
+    </div>
+  </div>`;
+}
+function updateOrderStatus(id, status){
+  const biz = currentBiz();
+  const o = biz.orders.find(x=>x.id===id);
+  o.status = status;
+  if(status==='completed'){ o.paidAt = now(); }
+  logAction(biz, `Order ${id.toUpperCase()} marked ${status}`);
+  toast(`Order marked ${status}`, status==='completed'?'success':'info');
+  persistAndRender();
+}
+function simulateOrder(){
+  const biz = currentBiz();
+  if(biz.products.length===0){ toast('Add products first', 'error'); return; }
+  const names = ['Adaeze Okonkwo','Tunde Bakare','Chiamaka Eze','Ibrahim Sule'];
+  const n = Math.min(3, biz.products.length);
+  const chosen = [...biz.products].sort(()=>0.5-Math.random()).slice(0, 1+Math.floor(Math.random()*n));
+  const items = chosen.map(p=>({name:p.name, price:p.price, qty:1+Math.floor(Math.random()*2)}));
+  const total = items.reduce((a,i)=>a+i.price*i.qty,0);
+  biz.orders.unshift({ id: uid('ord'), customerName: names[Math.floor(Math.random()*names.length)], customerPhone:'080'+Math.floor(10000000+Math.random()*89999999),
+    items, total, status:'pending', createdAt: now(), paidAt:null, deliveryCode: Math.random().toString(36).slice(2,10).toUpperCase() });
+  toast('New order received', 'success');
+  persistAndRender();
+}
+function generateReceipt(id){
+  const biz = currentBiz(); const o = biz.orders.find(x=>x.id===id);
+  document.getElementById('printArea').innerHTML = `
+    <div style="padding:40px;font-family:Inter,sans-serif;max-width:500px">
+      <h2 style="font-family:'Space Grotesk',sans-serif">${biz.businessName}</h2>
+      <p style="color:#666;font-size:13px">Receipt for order ${o.id.toUpperCase()}</p>
+      <hr style="margin:16px 0">
+      ${o.items.map(i=>`<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>${i.name} x${i.qty}</span><span>${money(i.price*i.qty)}</span></div>`).join('')}
+      <hr style="margin:16px 0">
+      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span>${money(o.total)}</span></div>
+      <p style="color:#999;font-size:12px;margin-top:24px">Customer: ${o.customerName} · ${fmtDate(o.paidAt||o.createdAt)}</p>
+    </div>`;
+  window.print();
+}
+function sendReceiptToCustomer(id){
+  const biz = currentBiz(); const o = biz.orders.find(x=>x.id===id);
+  let thread = biz.messages.find(m=>m.customerName===o.customerName);
+  if(!thread){ thread = { id: uid('msg'), customerName:o.customerName, lastAt:now(), chat:[] }; biz.messages.push(thread); }
+  thread.chat.push({from:'store', text:`Here's your receipt for order ${o.id.toUpperCase()}: total ${money(o.total)}. Thank you for shopping with us!`, at:now()});
+  thread.lastAt = now();
+  logAction(biz, `Sent receipt for ${o.id.toUpperCase()} to ${o.customerName}`);
+  toast('Receipt sent via messages', 'success');
+  persistAndRender();
+}
+
+/* ================= FINANCE ================= */
+function pageFinance(biz){
+  const editing = state.financeEditing;
+  const hasBank = !!biz.bank.accountNumber;
+  return `
+  ${pageHeader('Finance', 'Payout bank account. Protected by your password and a one-time code.')}
+  <div class="max-w-lg">
+  ${card(`<div class="p-6">
+    ${!editing ? `
+      ${hasBank ? `
+        <div class="space-y-3 mb-5">
+          <div class="flex justify-between text-sm"><span class="text-neutral-400">Bank</span><span class="font-medium">${biz.bank.bankName}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-neutral-400">Account number</span><span class="font-mono font-medium">••••${biz.bank.accountNumber.slice(-4)}</span></div>
+          <div class="flex justify-between text-sm"><span class="text-neutral-400">Account name</span><span class="font-medium">${biz.bank.accountName}</span></div>
+        </div>
+        <button onclick="startFinanceEdit()" ${biz.bank.locked?'disabled':''} class="text-sm font-semibold border border-neutral-300 rounded-full px-4 py-2 ${biz.bank.locked?'opacity-40 cursor-not-allowed':'hover:bg-neutral-100'}">Change bank account</button>
+      ` : `
+        <p class="text-sm text-neutral-500 mb-4">No payout account set up yet. This is required before your store can go live.</p>
+        <button onclick="startFinanceEdit()" class="text-sm font-semibold bg-ink text-white rounded-full px-4 py-2">Set up bank account</button>
+      `}
+      ${biz.bank.locked?`<p class="text-xs text-red-500 mt-3">Locked after 3 failed attempts. Contact the Wiesel team to unlock.</p>`:''}
+    ` : financeEditForm(biz)}
+  </div>`)}
+  </div>`;
+}
+function startFinanceEdit(){ state.financeEditing = 'password'; render(); }
+function financeEditForm(biz){
+  const step = state.financeEditing;
+  if(step==='password'){
+    return `<form onsubmit="return verifyFinancePassword(event)" class="space-y-4">
+      <p class="text-sm text-neutral-500">Confirm your account password to continue.</p>
+      <input name="password" type="password" required class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Store password">
+      <div class="flex gap-2">
+        <button class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold">Continue</button>
+        <button type="button" onclick="state.financeEditing=null;render()" class="text-sm text-neutral-500">Cancel</button>
+      </div>
+    </form>`;
+  }
+  if(step==='otp'){
+    return `<form onsubmit="return verifyFinanceOtp(event)" class="space-y-4">
+      <p class="text-sm text-neutral-500">We sent a 6-digit code to <strong>${biz.email}</strong>. (Demo code: <span class="font-mono">${state.demoOtp}</span>)</p>
+      <input name="otp" required maxlength="6" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-mono tracking-widest" placeholder="000000">
+      <div class="flex gap-2">
+        <button class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold">Verify</button>
+        <button type="button" onclick="state.financeEditing=null;render()" class="text-sm text-neutral-500">Cancel</button>
+      </div>
+    </form>`;
+  }
+  return `<form onsubmit="return saveBank(event)" class="space-y-4">
+    <input name="bankName" required class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Bank name" value="${biz.bank.bankName}">
+    <input name="accountNumber" required class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-mono" placeholder="Account number" value="${biz.bank.accountNumber}">
+    <input name="accountName" required class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" placeholder="Account name" value="${biz.bank.accountName}">
+    <div class="flex gap-2">
+      <button class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold">Save bank account</button>
+      <button type="button" onclick="state.financeEditing=null;render()" class="text-sm text-neutral-500">Cancel</button>
+    </div>
+  </form>`;
+}
+function verifyFinancePassword(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const pass = new FormData(e.target).get('password');
+  if(pass !== biz.password){
+    biz.bank.otpAttempts++;
+    if(biz.bank.otpAttempts>=3){ biz.bank.locked = true; toast('Locked after 3 failed attempts', 'error'); state.financeEditing=null; }
+    else toast(`Incorrect password (${3-biz.bank.otpAttempts} attempts left)`, 'error');
+    persistAndRender(); return false;
+  }
+  biz.bank.otpAttempts = 0;
+  state.demoOtp = String(Math.floor(100000+Math.random()*900000));
+  state.financeEditing = 'otp';
+  toast('OTP sent to business email (demo shown on screen)', 'info');
+  render();
+  return false;
+}
+function verifyFinanceOtp(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const otp = new FormData(e.target).get('otp');
+  if(otp !== state.demoOtp){
+    biz.bank.otpAttempts++;
+    if(biz.bank.otpAttempts>=3){ biz.bank.locked = true; toast('Locked after 3 failed attempts', 'error'); state.financeEditing=null; }
+    else toast(`Incorrect code (${3-biz.bank.otpAttempts} attempts left)`, 'error');
+    persistAndRender(); return false;
+  }
+  state.financeEditing = 'form';
+  render();
+  return false;
+}
+function saveBank(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const f = new FormData(e.target);
+  biz.bank.bankName = f.get('bankName');
+  biz.bank.accountNumber = f.get('accountNumber');
+  biz.bank.accountName = f.get('accountName');
+  biz.bank.otpAttempts = 0;
+  logAction(biz, 'Updated payout bank account');
+  toast('Bank account saved', 'success');
+  state.financeEditing = null;
+  persistAndRender();
+  return false;
+}
+
+/* ================= CUSTOMERS ================= */
+function pageCustomers(biz){
+  const map = {};
+  biz.orders.forEach(o=>{
+    if(!map[o.customerName]) map[o.customerName] = { name:o.customerName, phone:o.customerPhone, orders:0, spent:0, last:0 };
+    map[o.customerName].orders++;
+    if(o.status==='completed') map[o.customerName].spent += o.total;
+    map[o.customerName].last = Math.max(map[o.customerName].last, o.createdAt);
+  });
+  const customers = Object.values(map).sort((a,b)=>b.last-a.last);
+  return `
+  ${pageHeader('Customers', 'Wiesel users who have purchased from your store.')}
+  ${card(customers.length? `<div class="w-full overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
+    <th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Orders</th><th class="px-5 py-3 font-medium">Total spent</th><th class="px-5 py-3 font-medium">Last order</th></tr></thead>
+    <tbody>${customers.map(c=>`<tr class="border-b border-neutral-100 last:border-0">
+      <td class="px-5 py-3 flex items-center gap-3"><div class="w-7 h-7 rounded-full bg-neutral-100 text-xs flex items-center justify-center font-semibold">${initials(c.name)}</div>${c.name}</td>
+      <td class="px-5 py-3">${c.orders}</td><td class="px-5 py-3 font-semibold">${money(c.spent)}</td><td class="px-5 py-3 text-neutral-400">${fmtDay(c.last)}</td>
+    </tr>`).join('')}</tbody></table></div>` : emptyState('No customers yet'))}`;
+}
+
+/* ================= BRANDING ================= */
+function pageBranding(biz){
+  const storeUrl = `Wiesel.com/store/${biz.slug}`;
+  return `
+  ${pageHeader('Branding', 'Your public storefront — link, printable flyer, and visual identity.')}
+  <div class="grid lg:grid-cols-2 gap-6">
+    ${card(`<div class="p-6">
+      <h3 class="font-semibold text-sm mb-1">Store link</h3>
+      <div class="flex items-center gap-2 mt-3">
+        <div class="flex-1 border border-neutral-300 rounded-lg px-3 py-2.5 text-sm font-mono truncate">${storeUrl}</div>
+        <button onclick="copyStoreLink('${storeUrl}')" class="text-xs font-semibold border border-neutral-300 rounded-lg px-3 py-2.5 hover:bg-neutral-100">Copy</button>
+      </div>
+      <div class="flex items-center justify-between mt-6">
+        <div><p class="text-sm font-medium">Store status</p><p class="text-xs text-neutral-400">Customers can ${biz.branding.active?'currently shop your store':'not shop while inactive'}</p></div>
+        <button onclick="toggleActive()" class="w-12 h-7 rounded-full ${biz.branding.active?'bg-green-600':'bg-neutral-300'} relative transition">
+          <span class="absolute top-1 ${biz.branding.active?'right-1':'left-1'} w-5 h-5 bg-white rounded-full transition-all"></span>
+        </button>
+      </div>
+    </div>`)}
+    ${card(`<div class="p-6 text-center">
+      <h3 class="font-semibold text-sm mb-4 text-left">Store flyer</h3>
+      <div id="flyerPreviewWrap" class="mx-auto flex justify-center"></div>
+      <button onclick="downloadFlyer()" class="mt-4 inline-block text-xs font-semibold bg-ink text-white rounded-full px-4 py-2">Download flyer (print-ready)</button>
+      <p class="text-[11px] text-neutral-400 mt-2">High-resolution PNG — print and paste at your counter, or share on social media.</p>
+    </div>`)}
+    ${card(`<form onsubmit="return saveBanner(event)" class="p-6">
+      <h3 class="font-semibold text-sm mb-3">Banner text</h3>
+      <textarea name="banner" rows="3" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">${biz.branding.bannerText}</textarea>
+      <button class="mt-3 text-xs font-semibold bg-ink text-white rounded-full px-4 py-2">Save banner</button>
+    </form>`)}
+    ${card(`<form onsubmit="return saveColors(event)" class="p-6">
+      <h3 class="font-semibold text-sm mb-3">Color palette</h3>
+      <div class="flex gap-4">
+        <label class="flex-1"><span class="text-xs text-neutral-400">Primary</span><input type="color" name="primary" value="${biz.branding.primary}" class="w-full h-10 mt-1 rounded-lg border border-neutral-300"></label>
+        <label class="flex-1"><span class="text-xs text-neutral-400">Secondary</span><input type="color" name="secondary" value="${biz.branding.secondary}" class="w-full h-10 mt-1 rounded-lg border border-neutral-300"></label>
+      </div>
+      <button class="mt-4 text-xs font-semibold bg-ink text-white rounded-full px-4 py-2">Save colors</button>
+    </form>`)}
+  </div>`;
+}
+function copyStoreLink(url){ navigator.clipboard?.writeText('https://'+url); toast('Store link copied', 'success'); }
+function toggleActive(){
+  const biz = currentBiz(); biz.branding.active = !biz.branding.active;
+  logAction(biz, `Store set ${biz.branding.active?'active':'inactive'}`);
+  persistAndRender();
+}
+function saveBanner(e){
+  e.preventDefault(); const biz = currentBiz();
+  biz.branding.bannerText = new FormData(e.target).get('banner');
+  logAction(biz, 'Updated banner text'); toast('Banner saved','success'); persistAndRender(); return false;
+}
+function saveColors(e){
+  e.preventDefault(); const biz = currentBiz(); const f = new FormData(e.target);
+  biz.branding.primary = f.get('primary'); biz.branding.secondary = f.get('secondary');
+  logAction(biz, 'Updated brand colors'); toast('Colors saved','success'); persistAndRender(); return false;
+}
+
+/* ---------- flyer / demo QR generation (no third-party calls) ---------- */
+function hashStr(s){
+  let h = 2166136261;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hexToRgb(hex){
+  const m = String(hex || '').replace('#','').trim();
+  const full = m.length === 3 ? m.split('').map(ch=>ch+ch).join('') : m;
+  const n = parseInt(full || '0', 16);
+  return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+}
+function mixHex(a, b, t){
+  const A = hexToRgb(a), B = hexToRgb(b);
+  const mix = (x,y)=>Math.round(x + (y-x)*t);
+  return `rgb(${mix(A.r,B.r)}, ${mix(A.g,B.g)}, ${mix(A.b,B.b)})`;
+}
+function loadCanvasImage(src){
+  return new Promise((resolve, reject)=>{
+    if(!src) return reject(new Error('No image'));
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+// Draws a deterministic, premium-looking demo QR pattern (visual only, not a real encoder).
+function drawDemoQR(ctx, x, y, size, seedText, fg, bg){
+  const modules = 25;
+  const cell = size / modules;
+  ctx.fillStyle = bg; ctx.fillRect(x, y, size, size);
+  const rand = mulberry32(hashStr(seedText));
+  const grid = [];
+  for(let r=0;r<modules;r++){ grid[r] = []; for(let c=0;c<modules;c++){ grid[r][c] = rand() > 0.52 ? 1 : 0; } }
+  function finder(cx, cy){
+    for(let r=-3;r<=3;r++) for(let c=-3;c<=3;c++){
+      const rr=cy+r, cc=cx+c; if(rr<0||cc<0||rr>=modules||cc>=modules) continue;
+      const ring = Math.max(Math.abs(r),Math.abs(c));
+      grid[rr][cc] = (ring===3||ring===1) ? 0 : 1;
+    }
+  }
+  finder(3,3); finder(modules-4,3); finder(3,modules-4);
+  ctx.fillStyle = fg;
+  for(let r=0;r<modules;r++) for(let c=0;c<modules;c++){
+    if(grid[r][c]) ctx.fillRect(x + c*cell, y + r*cell, cell*0.94, cell*0.94);
+  }
+}
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+function drawPin(ctx, x, y, size, color){
+  const r = size * 0.26;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x, y + size * 0.48);
+  ctx.bezierCurveTo(x - size * 0.34, y + size * 0.12, x - size * 0.26, y - size * 0.18, x, y - size * 0.18);
+  ctx.bezierCurveTo(x + size * 0.26, y - size * 0.18, x + size * 0.34, y + size * 0.12, x, y + size * 0.48);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y + size * 0.04, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#0A0A0B';
+  ctx.fill();
+  ctx.restore();
+}
+function wrapCenteredText(ctx, text, cx, y, maxWidth, lineHeight, maxLines){
+  if(!text) return;
+  const words = text.split(/\s+/);
+  let line = '', lines = [];
+  for(const w of words){
+    const test = line ? line+' '+w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+    else line = test;
+    if(lines.length >= maxLines) break;
+  }
+  if(line && lines.length < maxLines) lines.push(line);
+  if(lines.length === maxLines && words.join(' ') !== lines.join(' ')){
+    let last = lines[maxLines-1];
+    while(ctx.measureText(last+'…').width > maxWidth && last.length>1) last = last.slice(0,-1);
+    lines[maxLines-1] = last + '…';
+  }
+  lines.forEach((l,i)=> ctx.fillText(l, cx, y + i*lineHeight));
+}
+async function buildFlyerCanvas(biz, scale=1){
+  const W = 1240 * scale, H = 1748 * scale;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const primary = biz.branding.primary || '#0A0A0B';
+  const secondary = biz.branding.secondary || '#16A34A';
+  const panelDark = mixHex(primary, '#08090C', 0.76);
+  const panelMid = mixHex(primary, '#111318', 0.58);
+  const textSoft = '#D1D5DB';
+
+  // background
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, mixHex(primary, '#030303', 0.86));
+  bg.addColorStop(0.42, mixHex(primary, '#0E1014', 0.88));
+  bg.addColorStop(1, '#050506');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // premium diagonal panels
+  ctx.save();
+  ctx.globalAlpha = 0.82;
+  ctx.fillStyle = panelDark;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.02);
+  ctx.lineTo(W * 0.68, 0);
+  ctx.lineTo(W * 0.82, H * 0.24);
+  ctx.lineTo(W * 0.08, H * 0.28);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = 0.65;
+  const glow = ctx.createRadialGradient(W * 0.22, H * 0.16, 10, W * 0.22, H * 0.16, W * 0.42);
+  glow.addColorStop(0, mixHex(secondary, '#ffffff', 0.16));
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // subtle shopping icons pattern
+  const pattern = ['🛒', '🛍️', '📦', '🏷️'];
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  for(let y = 110 * scale; y < H; y += 210 * scale){
+    for(let x = 120 * scale; x < W; x += 210 * scale){
+      const glyph = pattern[(Math.floor(x / 10) + Math.floor(y / 10)) % pattern.length];
+      ctx.font = `900 ${74 * scale}px Inter, sans-serif`;
+      ctx.fillText(glyph, x, y);
+    }
+  }
+  ctx.restore();
+
+  // top content card
+  const cardX = 44 * scale, cardY = 40 * scale, cardW = W - 88 * scale, cardH = H * 0.305;
+  ctx.save();
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  roundRect(ctx, cardX, cardY, cardW, cardH, 40 * scale);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 1.2 * scale;
+  roundRect(ctx, cardX, cardY, cardW, cardH, 40 * scale);
+  ctx.stroke();
+  ctx.restore();
+
+  // accent strip and small badge
+  ctx.fillStyle = secondary;
+  roundRect(ctx, 62 * scale, 64 * scale, 12 * scale, cardH - 40 * scale, 8 * scale);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  roundRect(ctx, W - 170 * scale, 66 * scale, 106 * scale, 34 * scale, 999 * scale);
+  ctx.fill();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `800 ${16 * scale}px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('WIESEL STORE', W - 117 * scale, 89 * scale);
+
+  const upperName = (biz.businessName || 'WIESEL STORE').toUpperCase();
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  let nameSize = 88 * scale;
+  ctx.font = `900 ${nameSize}px 'Space Grotesk', sans-serif`;
+  while(ctx.measureText(upperName).width > W * 0.80 && nameSize > 38 * scale){
+    nameSize -= 2 * scale;
+    ctx.font = `900 ${nameSize}px 'Space Grotesk', sans-serif`;
+  }
+  ctx.fillText(upperName, W / 2, 150 * scale);
+
+  ctx.fillStyle = '#E5E7EB';
+  ctx.font = `700 ${30 * scale}px 'Inter', sans-serif`;
+  ctx.globalAlpha = 0.98;
+  wrapCenteredText(ctx, (biz.branding.bannerText || 'PREMIUM SHOPPING, MADE SIMPLE').toUpperCase(), W / 2, 216 * scale, W * 0.74, 36 * scale, 2);
+
+  // location line with Lucide-style pin
+  const address = (biz.profile?.address || 'STORE ADDRESS NOT SET').toUpperCase();
+  const locY = 278 * scale;
+  ctx.font = `700 ${24 * scale}px 'Inter', sans-serif`;
+  const addrWidth = ctx.measureText(address).width;
+  const total = addrWidth + 30 * scale + 14 * scale;
+  const startX = W / 2 - total / 2;
+  drawPin(ctx, startX + 14 * scale, locY - 6 * scale, 22 * scale, secondary);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#F3F4F6';
+  ctx.fillText(address, startX + 30 * scale, locY);
+
+  // QR display card
+  const qrSize = W * 0.43;
+  const qrX = (W - qrSize) / 2;
+  const qrY = H * 0.355;
+  ctx.save();
+  const qrCard = ctx.createLinearGradient(qrX, qrY - 18 * scale, qrX + qrSize, qrY + qrSize + 24 * scale);
+  qrCard.addColorStop(0, 'rgba(255,255,255,0.10)');
+  qrCard.addColorStop(1, 'rgba(255,255,255,0.04)');
+  ctx.fillStyle = qrCard;
+  roundRect(ctx, qrX - 26 * scale, qrY - 34 * scale, qrSize + 52 * scale, qrSize + 68 * scale, 36 * scale);
+  ctx.fill();
+  ctx.strokeStyle = secondary;
+  ctx.lineWidth = 2.5 * scale;
+  roundRect(ctx, qrX - 26 * scale, qrY - 34 * scale, qrSize + 52 * scale, qrSize + 68 * scale, 36 * scale);
+  ctx.stroke();
+  ctx.restore();
+
+  drawDemoQR(ctx, qrX, qrY, qrSize, `${biz.slug}-${biz.merchantId || biz.id}`, '#FFFFFF', mixHex(primary, '#080808', 0.9));
+
+  const badge = qrSize * 0.22;
+  const bx = qrX + (qrSize - badge) / 2;
+  const by = qrY + (qrSize - badge) / 2;
+  ctx.save();
+  const badgeGlow = ctx.createRadialGradient(W / 2, qrY + qrSize / 2, 4, W / 2, qrY + qrSize / 2, badge * 1.6);
+  badgeGlow.addColorStop(0, mixHex(secondary, '#ffffff', 0.12));
+  badgeGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = badgeGlow;
+  ctx.fillRect(qrX, qrY, qrSize, qrSize);
+  ctx.fillStyle = panelMid;
+  roundRect(ctx, bx, by, badge, badge, badge / 2);
+  ctx.fill();
+  ctx.strokeStyle = secondary;
+  ctx.lineWidth = 2.8 * scale;
+  roundRect(ctx, bx, by, badge, badge, badge / 2);
+  ctx.stroke();
+
+  let drewLogo = false;
+  const logoSrc = biz.profile?.logo;
+  if(logoSrc){
+    try{
+      const img = await loadCanvasImage(logoSrc);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(W / 2, qrY + qrSize / 2, badge * 0.38, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(img, W / 2 - badge * 0.38, qrY + qrSize / 2 - badge * 0.38, badge * 0.76, badge * 0.76);
+      ctx.restore();
+      drewLogo = true;
+    } catch(e){}
+  }
+  if(!drewLogo){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `900 ${26 * scale}px 'Space Grotesk', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(initials(biz.businessName), W / 2, qrY + qrSize / 2 + 10 * scale);
+  }
+  ctx.restore();
+
+  // CTA block
+  let cy = qrY + qrSize + 110 * scale;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textAlign = 'center';
+  ctx.font = `900 ${54 * scale}px 'Space Grotesk', sans-serif`;
+  ctx.fillText('SCAN TO SHOP', W / 2, cy);
+
+  cy += 64 * scale;
+  ctx.fillStyle = textSoft;
+  ctx.font = `700 ${28 * scale}px 'Inter', sans-serif`;
+  ctx.fillText('Open your store instantly and browse products', W / 2, cy);
+
+  cy += 52 * scale;
+  ctx.fillStyle = secondary;
+  ctx.font = `900 ${38 * scale}px 'Space Grotesk', sans-serif`;
+  ctx.fillText((biz.businessName || 'WIESEL STORE').toUpperCase(), W / 2, cy);
+
+  // footer glow + tiny badges
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 2 * scale;
+  ctx.beginPath();
+  ctx.moveTo(W * 0.14, H * 0.92);
+  ctx.lineTo(W * 0.86, H * 0.92);
+  ctx.stroke();
+  ctx.fillStyle = '#9CA3AF';
+  ctx.font = `700 ${22 * scale}px 'Inter', sans-serif`;
+  ctx.fillText('POWERED BY WIESEL', W / 2, H * 0.956);
+  ctx.restore();
+
+  return canvas;
+}
+async function renderFlyerPreview(){
+  const biz = currentBiz();
+  const wrap = document.getElementById('flyerPreviewWrap');
+  if(!biz || !wrap) return;
+  const canvas = await buildFlyerCanvas(biz, 1);
+  canvas.style.width = '290px';
+  canvas.style.height = 'auto';
+  canvas.style.borderRadius = '18px';
+  canvas.style.boxShadow = '0 14px 34px rgba(0,0,0,.24)';
+  wrap.innerHTML = '';
+  wrap.appendChild(canvas);
+}
+async function downloadFlyer(){
+  const biz = currentBiz();
+  if(!biz) return;
+  const canvas = await buildFlyerCanvas(biz, 3);
+  const link = document.createElement('a');
+  link.download = `${biz.slug || 'store'}-wiesel-flyer.png`;
+  link.href = canvas.toDataURL('image/png', 1.0);
+  link.click();
+  toast('Flyer downloaded — ready to print', 'success');
+}
+
+function pageProducts(biz){
+  const editing = state.editingProduct;
+  return `
+  ${pageHeader('Products', `${biz.products.length} product${biz.products.length===1?'':'s'} in your catalog.`, `<button onclick="openProductForm('new')" class="text-xs font-semibold bg-ink text-white rounded-full px-4 py-2 inline-flex items-center gap-1.5">${icon('plus','w-3.5 h-3.5')}Add product</button>`)}
+  <div id="productFormMount" class="mobile-stack">${editing ? productForm(biz, editing==='new'?null:biz.products.find(p=>p.id===editing)) : ''}</div>
+  <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mt-6">
+    ${productGridHTML(biz)}
+  </div>`;
+}
+function productGridHTML(biz){
+  return biz.products.length? biz.products.map(p=>`
+      <div class="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+        <div class="aspect-[4/3] bg-neutral-100 flex items-center justify-center overflow-hidden">
+          ${p.images[0]?`<img src="${p.images[0]}" class="w-full h-full object-cover">`:`<span class="text-neutral-300">${icon('image','w-5 h-5')}</span>`}
+        </div>
+        <div class="p-2.5">
+          <div class="flex justify-between items-start gap-1.5">
+            <p class="font-medium text-xs leading-snug line-clamp-1">${p.name}</p>
+            <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${p.available?'bg-green-100 text-green-700':'bg-neutral-100 text-neutral-500'}">${p.available?'Live':'Off'}</span>
+          </div>
+          <p class="text-xs font-semibold mt-0.5">${money(p.price)}</p>
+          <p class="text-[10px] text-neutral-400 mt-0.5 truncate">${p.category||'Uncategorized'}</p>
+          <div class="flex gap-1 mt-2">
+            <button onclick="openProductForm('${p.id}')" class="flex-1 text-[10px] font-semibold border border-neutral-300 rounded-full py-1 hover:bg-neutral-100">Edit</button>
+            <button data-availability-btn="${p.id}" onclick="toggleAvailability('${p.id}')" class="flex-1 text-[10px] font-semibold border border-neutral-300 rounded-full py-1 hover:bg-neutral-100">${p.available?'Turn off':'Turn on'}</button>
+            <button onclick="deleteProduct('${p.id}')" class="text-red-600 border border-red-200 rounded-full px-1.5 hover:bg-red-50 flex items-center justify-center">${icon('trash-2','w-3 h-3')}</button>
+          </div>
+        </div>
+      </div>`).join('') : `<div class="col-span-full">${emptyState('No products yet — add your first one')}</div>`;
+}
+
+function openProductForm(id){
+  const biz = currentBiz();
+  const p = id==='new' ? null : biz.products.find(x=>x.id===id);
+  state.editingProduct = id;
+  state.tempImages = p ? [(p.images||[])[0]||null, (p.images||[])[1]||null, (p.images||[])[2]||null] : [null,null,null];
+  state.addingCategory = false;
+  render();
+}
+function closeProductForm(){ state.editingProduct = null; state.tempImages = null; render(); }
+
+function imageSlotHTML(i, src){
+  return src
+    ? `<div class="relative w-full h-full"><img src="${src}" class="w-full h-full object-cover rounded-lg"><button type="button" onclick="removeSlotImage(${i})" class="absolute -top-1.5 -right-1.5 bg-ink text-white rounded-full w-5 h-5 flex items-center justify-center shadow">${icon('x','w-3 h-3')}</button></div>`
+    : `<label class="img-slot w-full flex flex-col items-center justify-center gap-1 border-2 border-dashed border-neutral-300 rounded-lg text-neutral-400 cursor-pointer hover:border-neutral-400 hover:text-neutral-500 transition">
+         <input type="file" accept="image/*" class="hidden" onchange="handleSlotImage(event,${i})">
+         ${icon('image-plus','w-5 h-5')}<span class="text-[10px] font-medium">${i===0?'Cover photo':'Add photo'}</span>
+       </label>`;
+}
+function categorySelectHTML(biz, selected){
+  const cats = biz.categories || [];
+  return `
+  <div>
+    <select name="category" id="categorySelect" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm" onchange="if(this.value==='__new__'){ toggleNewCategory(true); }">
+      <option value="">Select a category</option>
+      ${cats.map(c=>`<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('')}
+      <option value="__new__">+ Create new category</option>
+    </select>
+    <div id="newCategoryWrap" class="${state.addingCategory?'':'hidden'} mt-2 flex gap-2">
+      <input type="text" id="newCategoryInput" placeholder="New category name" class="flex-1 border border-neutral-300 rounded-lg px-3 py-2 text-sm">
+      <button type="button" onclick="confirmNewCategory()" class="text-xs font-semibold bg-ink text-white rounded-lg px-3 py-2">Add</button>
+    </div>
+  </div>`;
+}
+
+function calcFees(price){
+  const gross = Number(price||0);
+  const platformFee = gross * 0.02;
+  const vatOnFee = platformFee * 0.075;
+  const processorFee = Math.min(gross * 0.015 + (gross > 2500 ? 100 : 0), 2000);
+  const totalFees = platformFee + vatOnFee + processorFee;
+  return { gross, platformFee, vatOnFee, processorFee, totalFees, net: Math.max(0, gross - totalFees) };
+}
+function earningsPreviewHTML(fees){
+  return `
+    <div class="flex justify-between gap-3"><span class="text-neutral-500">Price</span><span class="font-semibold">${money(fees.gross)}</span></div>
+    <div class="flex justify-between gap-3"><span class="text-neutral-500">Fees</span><span class="font-semibold">${money(fees.totalFees)}</span></div>
+    <div class="flex justify-between gap-3"><span class="text-neutral-500">You keep</span><span class="font-semibold">${money(fees.net)}</span></div>`;
+}
+function updateEarningsPreview(value){
+  const el = document.getElementById('earningsPreview');
+  if(!el) return;
+  el.innerHTML = earningsPreviewHTML(calcFees(value));
+}
+function toggleNewCategory(v){ state.addingCategory = v; document.getElementById('newCategoryWrap').classList.toggle('hidden', !v); if(v) document.getElementById('newCategoryInput')?.focus(); }
+function confirmNewCategory(){
+  const biz = currentBiz();
+  const input = document.getElementById('newCategoryInput');
+  const name = (input.value||'').trim();
+  if(!name){ toast('Enter a category name', 'error'); return; }
+  biz.categories = biz.categories || [];
+  if(!biz.categories.some(c=>c.toLowerCase()===name.toLowerCase())){ biz.categories.push(name); saveDB(db); }
+  const sel = document.getElementById('categorySelect');
+  const opt = document.createElement('option');
+  opt.value = name; opt.textContent = name; opt.selected = true;
+  sel.insertBefore(opt, sel.lastElementChild);
+  toggleNewCategory(false);
+  toast('Category added', 'success');
+}
+function productForm(biz, p){
+  const imgs = state.tempImages || [null,null,null];
+  const fees = calcFees(p?.price || 0);
+  return card(`<form onsubmit="return saveProduct(event,'${p?p.id:''}')" class="p-6 mb-2">
+    <h3 class="font-semibold text-sm mb-4">${p?'Edit product':'New product'}</h3>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <input name="name" required value="${p?.name||''}" placeholder="Product name" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+      <div>
+        <input name="price" type="number" step="0.01" min="0" required value="${p?.price||''}" oninput="updateEarningsPreview(this.value)" placeholder="Selling price (₦)" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+      </div>
+    </div>
+    <div class="mt-4">
+      <label class="text-xs font-semibold text-neutral-600 mb-1 block">Category</label>
+      ${categorySelectHTML(biz, p?.category||'')}
+    </div>
+    <textarea name="description" rows="2" placeholder="Description" class="w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm mt-4">${p?.description||''}</textarea>
+
+    <div class="mt-4">
+      <div class="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 mb-2">${icon('lock','w-3.5 h-3.5')}Your earnings (auto-calculated)</div>
+      <div id="earningsPreview" class="border border-neutral-200 rounded-lg p-3 text-xs bg-neutral-50 space-y-1.5">${earningsPreviewHTML(fees)}</div>
+      <p class="text-[11px] text-neutral-400 mt-1.5">Platform fee 2% + 7.5% VAT on that fee (2.15% total), plus the payment processor fee of 1.5%, with a flat ₦100 added only on orders above ₦2,500, capped at ₦2,000 total.</p>
+    </div>
+
+    <div class="mt-4">
+      <label class="text-xs font-semibold text-neutral-600">Photos — min 1, up to 3</label>
+      <div class="grid grid-cols-3 gap-2 mt-1.5" style="max-width:280px">
+        <div id="imgSlot0" class="img-slot">${imageSlotHTML(0, imgs[0])}</div>
+        <div id="imgSlot1" class="img-slot">${imageSlotHTML(1, imgs[1])}</div>
+        <div id="imgSlot2" class="img-slot">${imageSlotHTML(2, imgs[2])}</div>
+      </div>
+    </div>
+    <label class="flex items-center gap-2 mt-4 text-sm"><input type="checkbox" name="available" ${p?.available!==false?'checked':''}> Available for sale</label>
+    <div class="flex gap-2 mt-5">
+      <button type="submit" id="saveProductBtn" class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold inline-flex items-center gap-2">Save product</button>
+      <button type="button" onclick="closeProductForm()" class="text-sm text-neutral-500">Cancel</button>
+    </div>
+  </form>`);
+}
+async function handleSlotImage(e, idx){
+  const f = e.target.files[0]; if(!f) return;
+  const dataUrl = await fileToCompressedDataURL(f, 1600, 0.9);
+  state.tempImages[idx] = dataUrl;
+  const slot = document.getElementById('imgSlot'+idx);
+  if(slot) slot.innerHTML = imageSlotHTML(idx, dataUrl);
+  refreshIcons();
+}
+function removeSlotImage(idx){
+  state.tempImages[idx] = null;
+  document.getElementById('imgSlot'+idx).innerHTML = imageSlotHTML(idx, null);
+  refreshIcons();
+}
+function saveProduct(e, id){
+  e.preventDefault();
+  const biz = currentBiz();
+  const f = new FormData(e.target);
+  const images = (state.tempImages||[]).filter(Boolean);
+  if(images.length===0){ toast('Add at least 1 product photo', 'error'); return false; }
+  const category = f.get('category');
+  if(!category){ toast('Select or create a category for this product', 'error'); return false; }
+
+  const btn = document.getElementById('saveProductBtn');
+  const oldLabel = btn?.innerHTML || '';
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Saving...`; }
+
+  try{
+    const data = {
+      name: f.get('name'),
+      price: parseFloat(f.get('price')),
+      description: f.get('description'),
+      available: f.get('available') === 'on',
+      images,
+      category
+    };
+
+    if(id){
+      const product = biz.products.find(p=>p.id===id);
+      if(!product) throw new Error('Product not found');
+      Object.assign(product, data);
+      logAction(biz, `Updated product "${data.name}"`);
+    } else {
+      biz.products.unshift({ id: uid('prod'), ...data });
+      logAction(biz, `Added product "${data.name}"`);
+    }
+
+    saveDB(db);
+    toast('Product saved', 'success');
+    state.editingProduct = null;
+    state.tempImages = null;
+
+    requestAnimationFrame(()=>{ render(); });
+  } catch(err){
+    console.error(err);
+    const msg = String(err && err.message || '');
+    toast(msg.includes('Storage limit') ? 'Image storage is full. Smaller/compressed photos are used now, but you may need to replace very large old images.' : 'Could not save product. Please try again.', 'error');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = oldLabel || 'Save product'; }
+  }
+  return false;
+}
+function toggleAvailability(id){
+  const biz = currentBiz();
+  const p = biz.products.find(x=>x.id===id);
+  if(!p) return;
+  p.available = !p.available;
+  logAction(biz, `Set "${p.name}" ${p.available?'available':'unavailable'}`);
+  toast(`"${p.name}" turned ${p.available?'on':'off'}`, 'success');
+  saveDB(db);
+  const btn = document.querySelector(`[data-availability-btn="${CSS.escape(id)}"]`);
+  if(btn){ btn.textContent = p.available ? 'Turn off' : 'Turn on'; }
+  requestAnimationFrame(()=>{ render(); });
+}
+function deleteProduct(id){
+  const biz = currentBiz();
+  const p = biz.products.find(x=>x.id===id);
+  if(biz.products.length <= 5){
+    toast(`You need at least 5 products for your store to stay ready for sale. Turn "${p.name}" off or edit it instead of deleting.`, 'error');
+    return;
+  }
+  showConfirm({
+    title: 'Delete this product?',
+    message: `"${p.name}" will be permanently removed from your catalog.`,
+    confirmText: 'Delete', danger: true,
+    onConfirm(){
+      biz.products = biz.products.filter(x=>x.id!==id);
+      logAction(biz, `Deleted product "${p.name}"`);
+      toast('Product deleted', 'success');
+      persistAndRender();
+    }
+  });
+}
+
+/* ================= BUSINESS PROFILE ================= */
+function pageProfile(biz){
+  const editing = state.profileEditing;
+  const p = biz.profile;
+  return `
+  ${pageHeader('Business Profile', 'Your store\u2019s public and account information.', !editing?`<button onclick="state.profileEditing=true;render()" class="text-xs font-semibold border border-neutral-300 rounded-full px-4 py-2 hover:bg-neutral-100">Edit</button>`:'')}
+  ${editing ? `
+  ${card(`<form onsubmit="return saveProfile(event)" class="p-6 grid sm:grid-cols-2 gap-4">
+    <div class="sm:col-span-2">
+      <label class="text-xs font-semibold text-neutral-600">Logo</label>
+      <input type="file" accept="image/*" onchange="handleLogo(event)" class="mt-1 text-sm block">
+      <input type="hidden" id="logoDataInput" value="${p.logo||''}">
+      ${p.logo?`<img src="${p.logo}" class="w-16 h-16 rounded-lg object-cover mt-2 border border-neutral-200" id="logoPreview">`:`<div id="logoPreview"></div>`}
+    </div>
+    <input name="ownerName" required value="${p.ownerName}" placeholder="Business owner full name" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    <input name="industry" value="${p.industry}" placeholder="Industry" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    <input name="phone" required value="${p.phone}" placeholder="Phone number" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    <input name="address" required value="${p.address}" placeholder="Business address" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm sm:col-span-2">
+    <input name="openHour" required type="time" value="${p.openHour}" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    <input name="closeHour" required type="time" value="${p.closeHour}" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    <div class="sm:col-span-2 flex gap-2 mt-2">
+      <button class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold">Save changes</button>
+      <button type="button" onclick="state.profileEditing=false;render()" class="text-sm text-neutral-500">Cancel</button>
+    </div>
+  </form>`)}
+  ` : `
+  <div class="grid sm:grid-cols-3 gap-6">
+    <div class="sm:col-span-2">
+      ${card(`<div class="p-6 space-y-4">
+        ${profileRow('Business name', biz.businessName)}
+        ${profileRow('Owner', p.ownerName || '—')}
+        ${profileRow('Industry', p.industry || '—')}
+        ${profileRow('Email', biz.email)}
+        ${profileRow('Phone', p.phone || '—')}
+        ${profileRow('Address', p.address || '—')}
+        ${profileRow('Hours', p.openHour && p.closeHour ? `${p.openHour} – ${p.closeHour}` : '—')}
+        ${profileRow('Merchant ID', biz.merchantId || biz.id)}
+        ${profileRow('Joined', fmtDate(biz.createdAt))}
+      </div>`)}
+    </div>
+    <div class="space-y-6">
+      ${card(`<div class="p-6 text-center">
+        ${p.logo?`<img src="${p.logo}" class="w-20 h-20 rounded-xl object-cover mx-auto border border-neutral-200">`:`<div class="w-20 h-20 rounded-xl bg-neutral-100 mx-auto flex items-center justify-center text-neutral-300">${icon('store','w-7 h-7')}</div>`}
+        <p class="font-display font-bold mt-3">${biz.businessName}</p>
+        <p class="text-xs text-neutral-400">Wiesel.com/store/${biz.slug}</p>
+      </div>`)}
+      ${card(`<div class="p-5">
+        <button onclick="deleteAccount()" class="w-full text-sm font-semibold text-red-600 border border-red-200 rounded-lg py-2.5 hover:bg-red-50">Delete account</button>
+      </div>`)}
+    </div>
+  </div>`}
+  `;
+}
+function profileRow(label, value){ return `<div class="flex justify-between text-sm border-b border-neutral-100 pb-3 last:border-0 last:pb-0"><span class="text-neutral-400">${label}</span><span class="font-medium text-right">${value}</span></div>`; }
+async function handleLogo(e){
+  const f = e.target.files[0]; if(!f) return;
+  const dataUrl = await fileToCompressedDataURL(f, 1200, 0.92);
+  document.getElementById('logoDataInput').value = dataUrl;
+  const preview = document.getElementById('logoPreview');
+  if(preview) preview.innerHTML = `<img src="${dataUrl}" class="w-16 h-16 rounded-lg object-cover mt-2 border border-neutral-200">`;
+}
+function saveProfile(e){
+  e.preventDefault();
+  const biz = currentBiz(); const f = new FormData(e.target);
+  Object.assign(biz.profile, {
+    ownerName: f.get('ownerName'), industry: f.get('industry'), phone: f.get('phone'),
+    address: f.get('address'), openHour: f.get('openHour'), closeHour: f.get('closeHour'),
+    logo: document.getElementById('logoDataInput').value,
+  });
+  logAction(biz, 'Updated business profile');
+  toast('Profile saved', 'success');
+  state.profileEditing = false;
+  persistAndRender();
+  return false;
+}
+function deleteAccount(){
+  const biz = currentBiz();
+  showConfirm({
+    title: 'Delete this store account?',
+    message: 'This permanently deletes your store, products, orders and staff. This cannot be undone.',
+    confirmText: 'Delete account', danger: true,
+    onConfirm(){
+      db.businesses = db.businesses.filter(b=>b.id!==biz.id);
+      db.session = null; state.bizId = null; state.staffId = null;
+      saveDB(db);
+      toast('Account deleted', 'info');
+      location.hash = '#/auth';
+    }
+  });
+}
+
+/* ================= STAFF ================= */
+const ASSIGNABLE_PAGES = NAV.filter(n=>n.key!=='overview');
+
+function pageAccessCheckboxes(checkedPages=[]){
+  return `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    ${ASSIGNABLE_PAGES.map(n=>`
+      <label class="flex items-center gap-2 text-xs border border-neutral-200 rounded-lg px-2.5 py-2 hover:bg-neutral-50 cursor-pointer">
+        <input type="checkbox" name="pages" value="${n.key}" ${checkedPages.includes(n.key)?'checked':''}>
+        ${n.label}
+      </label>`).join('')}
+  </div>`;
+}
+
+function pageStaff(biz){
+  const isOwner = !state.staffId;
+  return `
+  ${pageHeader('Staff', 'Employee accounts, page access, and an audit log of dashboard activity.', isOwner?`<button onclick="state.addingStaff=!state.addingStaff;render()" class="text-xs font-semibold bg-ink text-white rounded-full px-4 py-2 inline-flex items-center gap-1.5">${icon('plus','w-3.5 h-3.5')}Add staff</button>`:'')}
+  ${state.addingStaff && isOwner ? card(`<form onsubmit="return addStaff(event)" class="p-6 mb-6">
+    <div class="grid sm:grid-cols-3 gap-4">
+      <input name="name" required placeholder="Full name" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+      <input name="email" type="email" required placeholder="Staff email" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+      <input name="password" required minlength="4" placeholder="Temporary password" class="border border-neutral-300 rounded-lg px-3 py-2.5 text-sm">
+    </div>
+    <div class="mt-4">
+      <label class="text-xs font-semibold text-neutral-600 mb-2 block">Page access — choose what this employee can open. Overview is always visible.</label>
+      ${pageAccessCheckboxes()}
+    </div>
+    <div class="mt-4"><button class="bg-ink text-white rounded-lg px-4 py-2 text-sm font-semibold">Create staff account</button></div>
+  </form>`, 'mb-6') : ''}
+  <div class="grid lg:grid-cols-2 gap-6">
+    ${card(`<div class="p-5">
+      <h3 class="font-semibold text-sm mb-4">Team (${biz.staff.length})</h3>
+      ${biz.staff.length? `<ul class="space-y-4 max-h-[520px] overflow-y-auto pr-2">${biz.staff.map(s=>`
+        <li class="border border-neutral-100 rounded-lg p-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-neutral-100 text-xs flex items-center justify-center font-semibold shrink-0">${initials(s.name)}</div>
+            <div><p class="text-sm font-medium">${s.name}</p><p class="text-xs text-neutral-400">${s.email}</p></div></div>
+            ${isOwner?`<div class="flex items-center gap-2 shrink-0">
+              <button onclick="toggleEditAccess('${s.id}')" class="text-xs font-semibold border border-neutral-300 rounded-full px-2.5 py-1 hover:bg-neutral-100">Access</button>
+              <button onclick="removeStaff('${s.id}')" class="text-xs text-red-600 font-semibold border border-red-200 rounded-full px-2.5 py-1 hover:bg-red-50">Remove</button>
+            </div>`:''}
+          </div>
+          <div class="flex flex-wrap gap-1 mt-2.5">
+            ${(s.pages&&s.pages.length) ? s.pages.map(k=>`<span class="text-[10px] font-medium bg-neutral-100 text-neutral-600 rounded-full px-2 py-0.5">${(NAV.find(n=>n.key===k)||{}).label||k}</span>`).join('') : `<span class="text-[10px] text-neutral-400">Overview only</span>`}
+          </div>
+          ${state.editingStaffAccess===s.id ? `
+          <form onsubmit="return saveStaffAccess(event,'${s.id}')" class="mt-3 pt-3 border-t border-neutral-100">
+            ${pageAccessCheckboxes(s.pages||[])}
+            <div class="flex gap-2 mt-3">
+              <button class="text-xs font-semibold bg-ink text-white rounded-full px-3 py-1.5">Save access</button>
+              <button type="button" onclick="toggleEditAccess('${s.id}')" class="text-xs text-neutral-500">Cancel</button>
+            </div>
+          </form>` : ''}
+        </li>`).join('')}</ul>` : `<p class="text-sm text-neutral-400">No staff added yet</p>`}
+    </div>`)}
+    ${card(`<div class="p-5">
+      <h3 class="font-semibold text-sm mb-4">Audit log</h3>
+      ${biz.auditLog.length? `<ul class="space-y-3 max-h-96 overflow-y-auto">${biz.auditLog.map(l=>`
+        <li class="text-sm border-b border-neutral-100 pb-2 last:border-0"><span class="font-medium">${l.actor}</span> <span class="text-neutral-500">${l.text}</span><div class="text-xs text-neutral-400 font-mono">${fmtDate(l.at)}</div></li>`).join('')}</ul>` : emptyState('No activity yet')}
+    </div>`)}
+  </div>`;
+}
+function addStaff(e){
+  e.preventDefault(); const biz = currentBiz(); const f = new FormData(e.target);
+  const pages = f.getAll('pages');
+  biz.staff.push({ id: uid('staff'), name: f.get('name'), email: f.get('email').toLowerCase(), password: f.get('password'), disabled:false, pages });
+  logAction(biz, `Added staff member "${f.get('name')}" with access to ${pages.length} page(s)`);
+  toast('Staff account created', 'success');
+  state.addingStaff = false;
+  persistAndRender();
+  return false;
+}
+function toggleEditAccess(id){ state.editingStaffAccess = state.editingStaffAccess===id ? null : id; render(); }
+function saveStaffAccess(e, id){
+  e.preventDefault();
+  const biz = currentBiz(); const s = biz.staff.find(x=>x.id===id);
+  s.pages = new FormData(e.target).getAll('pages');
+  logAction(biz, `Updated page access for "${s.name}"`);
+  toast('Access updated', 'success');
+  state.editingStaffAccess = null;
+  persistAndRender();
+  return false;
+}
+function removeStaff(id){
+  const biz = currentBiz(); const s = biz.staff.find(x=>x.id===id);
+  showConfirm({
+    title: 'Remove staff member?',
+    message: `${s.name} will lose access to the dashboard immediately.`,
+    confirmText: 'Remove', danger: true,
+    onConfirm(){
+      biz.staff = biz.staff.filter(x=>x.id!==id);
+      if(state.staffId===id){ state.staffId=null; db.session={bizId:biz.id, staffId:null}; }
+      logAction(biz, `Removed staff member "${s.name}"`);
+      toast('Staff member removed', 'success');
+      persistAndRender();
+    }
+  });
+}
+
+/* ================= DEMO DATA ================= */
+function seedDemoData(){
+  const biz = currentBiz();
+  if(biz.products.length===0){
+    biz.categories = biz.categories || [];
+    const sample = [
+      {name:'Ankara Wrap Dress', price:18500, description:'Handmade ankara wrap dress, one size fits most.', category:'Dresses'},
+      {name:'Beaded Clutch Bag', price:9500, description:'Hand-beaded evening clutch.', category:'Bags'},
+      {name:'Kente Head Wrap', price:6000, description:'Woven kente-style head wrap.', category:'Accessories'},
+      {name:'Adire Kaftan', price:21000, description:'Tie-dye adire kaftan, breathable cotton.', category:'Kaftans'},
+      {name:'Gele Set (3-piece)', price:14000, description:'Pre-styled gele set, three colors.', category:'Accessories'},
+    ];
+    sample.forEach(s=>{
+      if(!biz.categories.includes(s.category)) biz.categories.push(s.category);
+      biz.products.push({ id: uid('prod'), ...s, available:true, images:['https://placehold.co/300x300/0A0A0B/FFFFFF?text='+encodeURIComponent(s.name.split(' ')[0])] });
+    });
+  }
+  biz.profile.address = biz.profile.address || '14 Allen Avenue, Ikeja, Lagos';
+  biz.profile.phone = biz.profile.phone || '08012345678';
+  biz.profile.ownerName = biz.profile.ownerName || 'Victoria Adeyemi';
+  biz.profile.openHour = biz.profile.openHour || '09:00';
+  biz.profile.closeHour = biz.profile.closeHour || '19:00';
+  biz.profile.logo = biz.profile.logo || 'https://placehold.co/200x200/0A0A0B/FFFFFF?text=VF';
+  biz.bank.bankName = biz.bank.bankName || 'GTBank';
+  biz.bank.accountNumber = biz.bank.accountNumber || '0123456789';
+  biz.bank.accountName = biz.bank.accountName || biz.businessName;
+  for(let i=0;i<4;i++) simulateOrderSilent(biz);
+  simulateMessageSilent(biz);
+  logAction(biz, 'Loaded sample data');
+  toast('Sample data loaded', 'success');
+  persistAndRender();
+}
+function simulateOrderSilent(biz){
+  const names = ['Adaeze Okonkwo','Tunde Bakare','Chiamaka Eze','Ibrahim Sule'];
+  const chosen = [...biz.products].sort(()=>0.5-Math.random()).slice(0,1+Math.floor(Math.random()*3));
+  const items = chosen.map(p=>({name:p.name, price:p.price, qty:1+Math.floor(Math.random()*2)}));
+  const total = items.reduce((a,i)=>a+i.price*i.qty,0);
+  const daysAgo = Math.floor(Math.random()*6);
+  const t = now() - daysAgo*86400000;
+  const completed = Math.random() > 0.25;
+  biz.orders.unshift({ id: uid('ord'), customerName: names[Math.floor(Math.random()*names.length)], customerPhone:'080'+Math.floor(10000000+Math.random()*89999999),
+    items, total, status: completed?'completed':'pending', createdAt:t, paidAt: completed?t:null, deliveryCode: Math.random().toString(36).slice(2,10).toUpperCase() });
+}
+function simulateMessageSilent(biz){
+  biz.messages.push({ id: uid('msg'), customerName:'Adaeze Okonkwo', lastAt: now(), chat:[{from:'customer', text:'Hi, is the Ankara dress still available in medium?', at: now()}] });
+}
+
+/* ================= CONNECTIVITY GUARD ================= */
+function renderConnectivityBanner(){
+  const el = document.getElementById('offlineBanner');
+  if(!el) return;
+  if(navigator.onLine){
+    el.classList.add('hidden');
+    document.body.classList.remove('is-offline');
+  } else {
+    el.classList.remove('hidden');
+    document.body.classList.add('is-offline');
+  }
+}
+window.addEventListener('online', ()=>{ renderConnectivityBanner(); toast('Back online', 'success'); });
+window.addEventListener('offline', ()=>{ renderConnectivityBanner(); toast('You are offline', 'error'); });
+
+/* ================= ROUTER / RENDER ================= */
+function render(){
+  showLoader();
+  const root = document.getElementById('root');
+  const route = location.hash || '#/auth';
+  try{
+    if(route.startsWith('#/dashboard')){
+      if(!state.bizId){ location.hash = '#/auth'; return; }
+      root.innerHTML = viewDashboard();
+    } else {
+      root.innerHTML = viewAuth();
+    }
+    refreshIcons();
+    renderConnectivityBanner();
+    if(route.startsWith('#/dashboard') && (state.route.split('/')[2]||'overview')==='branding'){
+      renderFlyerPreview();
+    }
+  } catch(err){
+    console.error('Render error:', err);
+    root.innerHTML = `<div class="min-h-screen flex items-center justify-center p-6"><div class="max-w-md w-full bg-white border border-red-200 rounded-2xl p-6"><h1 class="font-display text-xl font-bold">Something broke while loading this page</h1><p class="text-sm text-neutral-500 mt-2">Check the console for the exact error. The dashboard shell was protected so the loader will not get stuck.</p></div></div>`;
+    toast('A page crashed while rendering. Check console.', 'error');
+  } finally {
+    hideLoader();
+  }
+}
+if(state.bizId && !location.hash.startsWith('#/dashboard')) location.hash = '#/dashboard/overview';
+render();
+</script>
+</body>
+</html>
