@@ -9,6 +9,7 @@
 <title>Wiesel Merchant · Dashboard</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <script>
@@ -89,6 +90,7 @@
     .dashboard-shell main { min-width: 0; }
     .dashboard-shell main > div { padding: 10px !important; max-width: none !important; }
     .dashboard-shell [class*="grid-cols-"] { grid-template-columns: 1fr !important; }
+    .dashboard-shell .table-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
     .dashboard-shell .mobile-stack { display: flex !important; flex-direction: column !important; }
     .dashboard-shell .mobile-stack > * { width: 100% !important; max-width: 100% !important; }
     .dashboard-shell .page-title { font-size: 1.05rem !important; line-height: 1.2 !important; }
@@ -128,13 +130,25 @@ function genMerchantId(){
   return `WSL-MERCHANT-${seq}`;
 }
 
+function normalizeProductImages(product){
+  if(!product || !Array.isArray(product.images)) return;
+  // Keep only one cover image per product so storage does not fill up.
+  product.images = product.images.filter(Boolean).slice(0, 1);
+}
+function sanitizeBusinessStorage(db){
+  if(!db || !Array.isArray(db.businesses)) return db;
+  db.businesses.forEach(biz => {
+    if(biz && Array.isArray(biz.products)) biz.products.forEach(normalizeProductImages);
+  });
+  return db;
+}
 function loadDB(){
   const raw = localStorage.getItem(DB_KEY);
   if(!raw) return { businesses: [], session: null };
-  try { return JSON.parse(raw); } catch(e){ return { businesses: [], session: null }; }
+  try { return sanitizeBusinessStorage(JSON.parse(raw)); } catch(e){ return { businesses: [], session: null }; }
 }
 function saveDB(db){
-  try { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  try { localStorage.setItem(DB_KEY, JSON.stringify(sanitizeBusinessStorage(db))); }
   catch(e){
     if(e && (e.name === 'QuotaExceededError' || String(e).toLowerCase().includes('quota'))){
       throw new Error('Storage limit reached.');
@@ -146,7 +160,7 @@ function saveDB(db){
 function icon(name, cls=''){ return `<i data-lucide="${name}" class="${cls}"></i>`; }
 function refreshIcons(){ try{ lucide.createIcons(); }catch(e){} }
 
-async function fileToCompressedDataURL(file, maxSide = 1600, quality = 0.9){
+async function fileToCompressedDataURL(file, maxSide = 900, quality = 0.62){
   const img = await new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const el = new Image();
@@ -162,7 +176,11 @@ async function fileToCompressedDataURL(file, maxSide = 1600, quality = 0.9){
   canvas.height = Math.max(1, Math.round(h * scale));
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', quality);
+  let out = '';
+  try { out = canvas.toDataURL('image/webp', quality); }
+  catch(e) {}
+  if(!out || out.length < 50 || out.startsWith('data:image/png')) out = canvas.toDataURL('image/jpeg', quality);
+  return out;
 }
 
 let loaderTimer = null;
@@ -239,6 +257,7 @@ function newBusiness({email, businessName, password}){
     messages: [],
     staff: [],
     auditLog: [],
+    notes: {},
     onboardingDismissed: false,
   };
 }
@@ -604,7 +623,11 @@ function salesBarChartHTML(days){
   const yTicks = [0, Math.ceil(max / 2), max];
   const yPos = v => padTop + chartH - (v / max) * chartH;
   return `
-  <div class="overflow-x-auto">
+  <div class="overflow-x-auto relative">
+    <div id="chartTooltip" class="pointer-events-none absolute z-20 opacity-0 transition-all duration-150 ease-out bg-ink text-white rounded-lg px-3 py-2 shadow-xl" style="transform:translate(-50%,-100%) scale(.96); left:0; top:0;">
+      <div id="chartTooltipLabel" class="text-[10px] text-white/60 font-medium"></div>
+      <div id="chartTooltipValue" class="font-semibold text-sm font-mono"></div>
+    </div>
     <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto block">
       <defs>
         <linearGradient id="wieselBar" x1="0" x2="0" y1="0" y2="1">
@@ -621,16 +644,145 @@ function salesBarChartHTML(days){
         const x = padX + i * (barW + gap);
         const barH = max ? (d.total / max) * chartH : 0;
         const y = padTop + chartH - barH;
+        const barId = 'bar_' + i;
         return `
-          <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 3)}" rx="12" fill="url(#wieselBar)"></rect>
+          <g style="cursor:pointer" onmousemove="showChartTooltip(event, ${JSON.stringify(d.label)}, ${JSON.stringify(money(d.total))})" onmouseleave="hideChartTooltip()">
+            <rect x="${x}" y="${padTop}" width="${barW}" height="${chartH}" fill="transparent"></rect>
+            <rect id="${barId}" x="${x}" y="${y}" width="${barW}" height="${Math.max(barH, 3)}" rx="12" fill="url(#wieselBar)" style="transition: transform .18s cubic-bezier(.2,.8,.3,1), opacity .18s ease, filter .18s ease; transform-origin:${x + barW/2}px ${padTop+chartH}px;" onmouseenter="this.style.transform='scaleY(1.015)'; this.style.filter='drop-shadow(0 6px 10px rgba(0,0,0,.18))'; this.setAttribute('fill','url(#wieselBarHover)')" onmouseleave="this.style.transform='scaleY(1)'; this.style.filter='none'; this.setAttribute('fill','url(#wieselBar)')"></rect>
+          </g>
           <text x="${x + barW / 2}" y="${height - 28}" text-anchor="middle" class="fill-neutral-500" font-size="11" font-family="Inter, sans-serif">${d.label}</text>
           <text x="${x + barW / 2}" y="${y - 8}" text-anchor="middle" class="fill-neutral-900" font-size="11" font-family="JetBrains Mono, monospace">${money(d.total)}</text>
         `;
       }).join('')}
+      <defs>
+        <linearGradient id="wieselBarHover" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#1F2937"/>
+          <stop offset="100%" stop-color="#16A34A"/>
+        </linearGradient>
+      </defs>
       <line x1="${padX}" x2="${width - padX}" y1="${padTop + chartH}" y2="${padTop + chartH}" stroke="#D1D5DB" stroke-width="1.2"></line>
     </svg>
   </div>`;
 }
+function showChartTooltip(evt, label, value){
+  const tip = document.getElementById('chartTooltip');
+  if(!tip) return;
+  document.getElementById('chartTooltipLabel').textContent = label;
+  document.getElementById('chartTooltipValue').textContent = value;
+  const wrap = tip.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const x = evt.clientX - rect.left;
+  const y = evt.clientY - rect.top;
+  tip.style.left = x + 'px';
+  tip.style.top = (y - 14) + 'px';
+  tip.style.opacity = '1';
+  tip.style.transform = 'translate(-50%,-100%) scale(1)';
+}
+function hideChartTooltip(){
+  const tip = document.getElementById('chartTooltip');
+  if(!tip) return;
+  tip.style.opacity = '0';
+  tip.style.transform = 'translate(-50%,-100%) scale(.96)';
+}
+
+/* ---------- overview header: notifications + notes ---------- */
+function overviewNotifications(biz){
+  const items = [];
+  biz.orders.slice(0,5).forEach(o=> items.push({ at:o.createdAt, icon:'package', text:`New order from ${o.customerName} — ${money(o.total)}` }));
+  biz.messages.slice(0,5).forEach(m=> items.push({ at:m.lastAt, icon:'message-circle', text:`Message from ${m.customerName}` }));
+  return items.sort((a,b)=>b.at-a.at).slice(0,6);
+}
+function overviewHeaderIcons(biz){
+  const notifCount = overviewNotifications(biz).length;
+  return `
+  <div class="flex items-center gap-2 relative">
+    <div class="relative">
+      <button onclick="toggleNotifPanel(event)" class="w-9 h-9 rounded-full border border-neutral-200 bg-white flex items-center justify-center hover:bg-neutral-50 transition relative" title="Notifications">
+        ${icon('bell','w-4 h-4')}
+        ${notifCount ? `<span class="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">${notifCount}</span>` : ''}
+      </button>
+      ${state.showNotifPanel ? notifPanelHTML(biz) : ''}
+    </div>
+    <div class="relative">
+      <button onclick="toggleNotesPanel(event)" class="w-9 h-9 rounded-full border border-neutral-200 bg-white flex items-center justify-center hover:bg-neutral-50 transition" title="Notes">
+        ${icon('notebook-pen','w-4 h-4')}
+      </button>
+      ${state.showNotesPanel ? notesPanelHTML(biz) : ''}
+    </div>
+  </div>`;
+}
+function toggleNotifPanel(e){ e.stopPropagation(); state.showNotifPanel = !state.showNotifPanel; state.showNotesPanel = false; render(); }
+function toggleNotesPanel(e){ e.stopPropagation(); state.showNotesPanel = !state.showNotesPanel; state.showNotifPanel = false; render(); }
+function notifPanelHTML(biz){
+  const items = overviewNotifications(biz);
+  return `
+  <div class="fade-in absolute right-0 top-11 w-80 bg-white border border-neutral-200 rounded-xl shadow-xl z-30 overflow-hidden" onclick="event.stopPropagation()">
+    <div class="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+      <p class="text-sm font-semibold">Notifications</p>
+      <button onclick="state.showNotifPanel=false;render()" class="text-neutral-400 hover:text-ink">${icon('x','w-3.5 h-3.5')}</button>
+    </div>
+    <div class="max-h-80 overflow-y-auto">
+      ${items.length? items.map(n=>`
+        <div class="px-4 py-3 border-b border-neutral-50 last:border-0 flex gap-3 items-start hover:bg-neutral-50">
+          <div class="w-7 h-7 rounded-full bg-neutral-100 text-neutral-500 flex items-center justify-center shrink-0">${icon(n.icon,'w-3.5 h-3.5')}</div>
+          <div class="min-w-0"><p class="text-xs font-medium leading-snug">${n.text}</p><p class="text-[10px] text-neutral-400 mt-0.5">${fmtDate(n.at)}</p></div>
+        </div>`).join('') : `<div class="px-4 py-8 text-center text-xs text-neutral-400">No notifications yet</div>`}
+    </div>
+  </div>`;
+}
+function currentNoteOwnerKey(){ return state.staffId || 'owner'; }
+function currentNoteOwnerLabel(biz){
+  if(state.staffId){ const s = biz.staff.find(x=>x.id===state.staffId); return s ? s.name : 'Staff'; }
+  return biz.profile.ownerName || 'Owner';
+}
+function getMyNotes(biz){
+  biz.notes = biz.notes || {};
+  const key = currentNoteOwnerKey();
+  biz.notes[key] = biz.notes[key] || [];
+  return biz.notes[key];
+}
+function notesPanelHTML(biz){
+  const notes = getMyNotes(biz).slice().sort((a,b)=>b.at-a.at);
+  return `
+  <div class="fade-in absolute right-0 top-11 w-80 bg-white border border-neutral-200 rounded-xl shadow-xl z-30 overflow-hidden" onclick="event.stopPropagation()">
+    <div class="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+      <div><p class="text-sm font-semibold">My notes</p><p class="text-[10px] text-neutral-400">Only visible to ${currentNoteOwnerLabel(biz)}</p></div>
+      <button onclick="state.showNotesPanel=false;render()" class="text-neutral-400 hover:text-ink">${icon('x','w-3.5 h-3.5')}</button>
+    </div>
+    <form onsubmit="return addNote(event)" class="p-3 border-b border-neutral-100">
+      <textarea name="note" rows="2" required placeholder="e.g. Delivery to Mr James was unsuccessful, he'll be available in store for pickup on Saturday evening" class="w-full border border-neutral-300 rounded-lg px-3 py-2 text-xs resize-none"></textarea>
+      <button class="mt-2 text-xs font-semibold bg-ink text-white rounded-full px-3 py-1.5">Add note</button>
+    </form>
+    <div class="max-h-64 overflow-y-auto">
+      ${notes.length? notes.map(n=>`
+        <div class="px-4 py-3 border-b border-neutral-50 last:border-0 group">
+          <div class="flex justify-between gap-2">
+            <p class="text-xs leading-snug whitespace-pre-wrap flex-1">${n.text}</p>
+            <button onclick="deleteNote('${n.id}')" class="text-neutral-300 hover:text-red-600 shrink-0">${icon('x','w-3 h-3')}</button>
+          </div>
+          <p class="text-[10px] text-neutral-400 mt-1">${fmtDate(n.at)}</p>
+        </div>`).join('') : `<div class="px-4 py-8 text-center text-xs text-neutral-400">No notes yet</div>`}
+    </div>
+  </div>`;
+}
+function addNote(e){
+  e.preventDefault();
+  const biz = currentBiz();
+  const text = new FormData(e.target).get('note').trim();
+  if(!text) return false;
+  getMyNotes(biz).unshift({ id: uid('note'), text, at: now() });
+  persistAndRender();
+  return false;
+}
+function deleteNote(id){
+  const biz = currentBiz();
+  const key = currentNoteOwnerKey();
+  biz.notes[key] = (biz.notes[key]||[]).filter(n=>n.id!==id);
+  persistAndRender();
+}
+document.addEventListener('click', ()=>{
+  if(state.showNotifPanel || state.showNotesPanel){ state.showNotifPanel=false; state.showNotesPanel=false; render(); }
+});
 
 function pageOverview(biz){
   const steps = onboardingSteps(biz);
@@ -682,7 +834,7 @@ function pageOverview(biz){
   const max = Math.max(1, ...days.map(d=>d.total));
 
   return `
-  ${pageHeader('Overview', 'Store performance at a glance.')}
+  ${pageHeader('Overview', 'Store performance at a glance.', overviewHeaderIcons(biz))}
   ${checklistBlock}
   <div class="grid sm:grid-cols-3 gap-4 mb-6">
     ${statCard('Orders today', salesToday.length, 'package')}
@@ -726,7 +878,7 @@ function pageMessages(biz){
   const thread = biz.messages.find(m=>m.id===activeId);
 
   return `
-  ${pageHeader('Messages', 'Conversations from Wiesel users. Threads disappear 24 hours after the last message.', `<button onclick="simulateMessage()" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5 hover:bg-neutral-100 inline-flex items-center gap-1.5">${icon('zap','w-3.5 h-3.5')}Simulate incoming message</button>`)}
+  ${pageHeader('Messages', 'Conversations from Wiesel users. Threads disappear 24 hours after the last message. Only text and voice notes can be sent.', `<button onclick="simulateMessage()" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5 hover:bg-neutral-100 inline-flex items-center gap-1.5">${icon('zap','w-3.5 h-3.5')}Simulate incoming message</button>`)}
   <div class="grid md:grid-cols-3 gap-0 border border-neutral-200 rounded-xl bg-white overflow-hidden" style="min-height:480px">
     <div class="border-r border-neutral-200 overflow-y-auto" style="max-height:600px">
       ${biz.messages.length===0 ? emptyState('No messages in the last 24 hours') :
@@ -735,7 +887,7 @@ function pageMessages(biz){
           <div class="w-8 h-8 rounded-full bg-ink text-white text-xs flex items-center justify-center font-semibold shrink-0">${initials(m.customerName)}</div>
           <div class="min-w-0 flex-1">
             <div class="flex justify-between items-baseline"><p class="text-sm font-medium truncate">${m.customerName}</p><span class="text-[10px] text-neutral-400 shrink-0">${fmtDay(m.lastAt)}</span></div>
-            <p class="text-xs text-neutral-400 truncate">${m.chat[m.chat.length-1]?.text||''}</p>
+            <p class="text-xs text-neutral-400 truncate">${lastMessagePreview(m)}</p>
           </div>
         </button>`).join('')}
     </div>
@@ -745,37 +897,128 @@ function pageMessages(biz){
         <div><p class="text-sm font-semibold">${thread.customerName}</p><p class="text-xs text-neutral-400">Expires ${fmtDate(thread.lastAt + 24*3600*1000)}</p></div>
       </div>
       <div class="flex-1 p-5 space-y-3 overflow-y-auto" style="max-height:440px">
-        ${thread.chat.map(c=>`
-          <div class="flex ${c.from==='store'?'justify-end':'justify-start'}">
-            <div class="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm ${c.from==='store'?'bg-ink text-white rounded-br-sm':'bg-neutral-100 rounded-bl-sm'}">${c.text}</div>
-          </div>`).join('')}
+        ${thread.chat.map(c=>messageBubbleHTML(c)).join('')}
       </div>
-      <form onsubmit="return sendReply(event,'${thread.id}')" class="p-3 border-t border-neutral-200 flex gap-2">
-        <input name="text" required placeholder="Reply as ${biz.businessName}..." class="flex-1 border border-neutral-300 rounded-full px-4 py-2 text-sm">
-        <button class="bg-ink text-white rounded-full px-4 py-2 text-sm font-semibold">Send</button>
+      <form onsubmit="return sendReply(event,'${thread.id}')" ondragover="event.preventDefault();" ondrop="handleMessageDrop(event)" onpaste="handleMessagePaste(event)" class="p-3 border-t border-neutral-200 flex gap-2 items-center">
+        <input name="text" ${state.recording?'disabled':''} placeholder="${state.recording?'Recording voice note…':'Reply as '+biz.businessName+'...'}" class="flex-1 border border-neutral-300 rounded-full px-4 py-2 text-sm disabled:bg-neutral-50 disabled:text-neutral-400">
+        <button type="button" onclick="toggleVoiceRecording('${thread.id}')" class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition ${state.recording?'bg-red-600 text-white animate-pulse':'border border-neutral-300 hover:bg-neutral-100'}" title="${state.recording?'Stop recording':'Record voice note'}">
+          ${icon(state.recording?'square':'mic','w-4 h-4')}
+        </button>
+        <button ${state.recording?'disabled':''} class="bg-ink text-white rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-40">Send</button>
       </form>` : `<div class="flex-1">${emptyState('Select a conversation')}</div>`}
     </div>
   </div>`;
 }
-function openThread(id){ state.activeThread = id; render(); }
+function lastMessagePreview(m){
+  const c = m.chat[m.chat.length-1];
+  if(!c) return '';
+  if(c.type==='audio') return '🎤 Voice note';
+  if(c.type==='file') return '📎 ' + (c.fileName||'Attachment');
+  return c.text||'';
+}
+function messageBubbleHTML(c){
+  const align = c.from==='store' ? 'justify-end' : 'justify-start';
+  const bubbleClass = c.from==='store' ? 'bg-ink text-white rounded-br-sm' : 'bg-neutral-100 rounded-bl-sm';
+  let inner = '';
+  if(c.type==='audio'){
+    inner = `<div class="flex items-center gap-2"><audio controls src="${c.audioUrl}" class="h-9" style="max-width:210px"></audio></div>`;
+  } else if(c.type==='file'){
+    inner = `<a href="${c.dataUrl}" download="${c.fileName}" class="flex items-center gap-2 underline decoration-dotted">${icon('file-text','w-4 h-4')}<span>${c.fileName}</span></a>${c.text?`<p class="mt-1 text-xs opacity-80">${c.text}</p>`:''}`;
+  } else {
+    inner = c.text;
+  }
+  return `<div class="flex ${align}">
+    <div class="max-w-[75%] px-3.5 py-2 rounded-2xl text-sm ${bubbleClass}">${inner}</div>
+  </div>`;
+}
+function openThread(id){ state.activeThread = id; state.recording=false; render(); }
 function sendReply(e, threadId){
   e.preventDefault();
   const biz = currentBiz();
   const m = biz.messages.find(x=>x.id===threadId);
   const text = new FormData(e.target).get('text');
-  m.chat.push({from:'store', text, at:now()});
+  if(!text || !text.trim()) return false;
+  m.chat.push({from:'store', type:'text', text, at:now()});
   m.lastAt = now();
   logAction(biz, `Replied to ${m.customerName}`);
   persistAndRender();
   return false;
+}
+function handleMessageDrop(e){
+  e.preventDefault();
+  toast('Only text and voice notes can be sent in messages', 'error');
+}
+function handleMessagePaste(e){
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){
+      e.preventDefault();
+      toast("Images can't be sent in messages — only text and voice notes", 'error');
+      return;
+    }
+  }
 }
 function simulateMessage(){
   const biz = currentBiz();
   const names = ['Adaeze Okonkwo','Tunde Bakare','Chiamaka Eze','Ibrahim Sule','Femi Adekunle'];
   const texts = ['Hi, is this item still available?','Do you deliver to Lekki?','Can I get a discount on bulk orders?','What time do you close today?'];
   const name = names[Math.floor(Math.random()*names.length)];
-  biz.messages.push({ id: uid('msg'), customerName: name, lastAt: now(), chat:[{from:'customer', text: texts[Math.floor(Math.random()*texts.length)], at: now()}] });
+  biz.messages.push({ id: uid('msg'), customerName: name, lastAt: now(), chat:[{from:'customer', type:'text', text: texts[Math.floor(Math.random()*texts.length)], at: now()}] });
   toast(`New message from ${name}`, 'info');
+  persistAndRender();
+}
+
+/* ---------- voice note recording ---------- */
+let mediaRecorder = null;
+let audioChunks = [];
+let recordingStream = null;
+async function toggleVoiceRecording(threadId){
+  if(state.recording){ stopVoiceRecording(); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ toast('Voice recording is not supported in this browser', 'error'); return; }
+  try{
+    recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(err){
+    toast('Microphone access was denied', 'error');
+    return;
+  }
+  audioChunks = [];
+  try{ mediaRecorder = new MediaRecorder(recordingStream); }
+  catch(err){ toast('Could not start recording on this device', 'error'); return; }
+  mediaRecorder.ondataavailable = ev => { if(ev.data && ev.data.size) audioChunks.push(ev.data); };
+  mediaRecorder.onstop = async () => {
+    recordingStream.getTracks().forEach(t=>t.stop());
+    if(audioChunks.length===0) return;
+    const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+    const dataUrl = await blobToDataURL(blob);
+    sendVoiceMessage(threadId, dataUrl);
+  };
+  mediaRecorder.start();
+  state.recording = true;
+  toast('Recording voice note…', 'info');
+  render();
+}
+function stopVoiceRecording(){
+  state.recording = false;
+  if(mediaRecorder && mediaRecorder.state !== 'inactive'){ mediaRecorder.stop(); }
+  render();
+}
+function blobToDataURL(blob){
+  return new Promise((resolve, reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+function sendVoiceMessage(threadId, dataUrl){
+  const biz = currentBiz();
+  const m = biz.messages.find(x=>x.id===threadId);
+  if(!m) return;
+  m.chat.push({ from:'store', type:'audio', audioUrl: dataUrl, at: now() });
+  m.lastAt = now();
+  logAction(biz, `Sent a voice note to ${m.customerName}`);
+  toast('Voice note sent', 'success');
   persistAndRender();
 }
 
@@ -790,7 +1033,7 @@ function pageSales(biz){
     ${statCard('Total earned', money(total), 'wallet')}
     ${statCard('Avg. sale', money(sales.length? total/sales.length:0), 'divide')}
   </div>
-  ${card(sales.length? `<div class="w-full overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
+  ${card(sales.length? `<div class="w-full table-scroll overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
     <th class="px-5 py-3 font-medium">Product</th><th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Price</th><th class="px-5 py-3 font-medium">Date</th></tr></thead>
     <tbody>${sales.map(o=>`<tr class="border-b border-neutral-100 last:border-0">
       <td class="px-5 py-3">${o.items.map(i=>i.name).join(', ')}</td>
@@ -808,7 +1051,7 @@ function pageOrders(biz){
   if(order) return orderDetail(biz, order);
   return `
   ${pageHeader('Orders', 'Successful orders from online customers.', `<button onclick="simulateOrder()" class="text-xs font-semibold border border-neutral-300 rounded-full px-3 py-1.5 hover:bg-neutral-100 inline-flex items-center gap-1.5">${icon('zap','w-3.5 h-3.5')}Simulate order</button>`)}
-  ${card(biz.orders.length? `<div class="w-full overflow-x-auto"><table class="min-w-[760px] w-full text-sm">
+  ${card(biz.orders.length? `<div class="w-full table-scroll overflow-x-auto"><table class="min-w-[760px] w-full text-sm">
     <thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
       <th class="px-5 py-3 font-medium">Order ID</th><th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Total</th><th class="px-5 py-3 font-medium">Status</th><th class="px-5 py-3 font-medium">Date</th></tr></thead>
     <tbody>${biz.orders.map(o=>`
@@ -834,7 +1077,7 @@ function orderDetail(biz, o){
     <div class="lg:col-span-2 space-y-6">
       ${card(`<div class="p-5">
         <h3 class="font-semibold text-sm mb-4">Items purchased</h3>
-        <div class="w-full overflow-x-auto"><table class="min-w-[540px] w-full text-sm"><tbody>
+        <div class="w-full table-scroll overflow-x-auto"><table class="min-w-[540px] w-full text-sm"><tbody>
         ${o.items.map(i=>`<tr class="border-b border-neutral-100 last:border-0"><td class="py-2">${i.name}</td><td class="py-2 text-neutral-400">x${i.qty}</td><td class="py-2 text-right font-medium">${money(i.price*i.qty)}</td></tr>`).join('')}
         </tbody></table></div>
         <div class="flex justify-between pt-4 mt-2 border-t border-neutral-200 font-semibold"><span>Total</span><span>${money(o.total)}</span></div>
@@ -856,8 +1099,8 @@ function orderDetail(biz, o){
         <p class="text-xs text-neutral-400 mt-3">Purchased at ${fmtDate(o.createdAt)}</p>
       </div>`)}
       ${card(`<div class="p-5">
-        <button onclick="generateReceipt('${o.id}')" class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold mb-2">Download receipt (PDF)</button>
-        <button onclick="sendReceiptToCustomer('${o.id}')" class="w-full border border-neutral-300 rounded-lg py-2.5 text-sm font-semibold">Send receipt via message</button>
+        <button onclick="generateReceipt('${o.id}')" id="downloadReceiptBtn_${o.id}" class="w-full bg-ink text-white rounded-lg py-2.5 text-sm font-semibold mb-2">Download receipt (PDF)</button>
+        <button onclick="sendReceiptToCustomer('${o.id}')" id="sendReceiptBtn_${o.id}" class="w-full border border-neutral-300 rounded-lg py-2.5 text-sm font-semibold">Send receipt via message</button>
       </div>`)}
     </div>
   </div>`;
@@ -884,28 +1127,74 @@ function simulateOrder(){
   toast('New order received', 'success');
   persistAndRender();
 }
+function buildReceiptPDF(biz, o){
+  const pdfLib = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+  if(!pdfLib) return null;
+  const lineH = 18;
+  const headerH = 118;
+  const itemsH = o.items.length * lineH + 40;
+  const footerH = 70;
+  const pageH = headerH + itemsH + footerH;
+  const pageW = 320;
+  const doc = new pdfLib({ unit:'pt', format:[pageW, pageH] });
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text(biz.businessName || 'Store', pageW/2, 34, { align:'center' });
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text(`Receipt for order ${o.id.toUpperCase()}`, pageW/2, 50, { align:'center' });
+  doc.setDrawColor(220);
+  doc.line(24, 64, pageW-24, 64);
+  doc.setTextColor(20);
+  doc.setFontSize(10);
+  let y = 84;
+  o.items.forEach(i=>{
+    doc.text(`${i.name} x${i.qty}`, 24, y);
+    doc.text(money(i.price*i.qty), pageW-24, y, { align:'right' });
+    y += lineH;
+  });
+  doc.setDrawColor(220);
+  doc.line(24, y+4, pageW-24, y+4);
+  y += 24;
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.text('Total', 24, y);
+  doc.text(money(o.total), pageW-24, y, { align:'right' });
+  y += 26;
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text(`Customer: ${o.customerName}`, 24, y);
+  y += 12;
+  doc.text(fmtDate(o.paidAt||o.createdAt), 24, y);
+  return doc;
+}
 function generateReceipt(id){
   const biz = currentBiz(); const o = biz.orders.find(x=>x.id===id);
-  document.getElementById('printArea').innerHTML = `
-    <div style="padding:40px;font-family:Inter,sans-serif;max-width:500px">
-      <h2 style="font-family:'Space Grotesk',sans-serif">${biz.businessName}</h2>
-      <p style="color:#666;font-size:13px">Receipt for order ${o.id.toUpperCase()}</p>
-      <hr style="margin:16px 0">
-      ${o.items.map(i=>`<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px"><span>${i.name} x${i.qty}</span><span>${money(i.price*i.qty)}</span></div>`).join('')}
-      <hr style="margin:16px 0">
-      <div style="display:flex;justify-content:space-between;font-weight:700"><span>Total</span><span>${money(o.total)}</span></div>
-      <p style="color:#999;font-size:12px;margin-top:24px">Customer: ${o.customerName} · ${fmtDate(o.paidAt||o.createdAt)}</p>
-    </div>`;
-  window.print();
+  const btn = document.getElementById('downloadReceiptBtn_'+id);
+  const oldLabel = btn ? btn.innerHTML : '';
+  if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Preparing PDF...`; }
+  try{
+    const doc = buildReceiptPDF(biz, o);
+    if(!doc){ toast('PDF engine unavailable in this browser', 'error'); return; }
+    doc.save(`receipt-${o.id}.pdf`);
+    toast('Receipt downloaded as PDF', 'success');
+  } finally {
+    if(btn){ btn.disabled = false; btn.innerHTML = oldLabel; }
+  }
 }
 function sendReceiptToCustomer(id){
   const biz = currentBiz(); const o = biz.orders.find(x=>x.id===id);
+  const doc = buildReceiptPDF(biz, o);
+  if(!doc){ toast('PDF engine unavailable in this browser', 'error'); return; }
+  const dataUrl = doc.output('datauristring');
   let thread = biz.messages.find(m=>m.customerName===o.customerName);
   if(!thread){ thread = { id: uid('msg'), customerName:o.customerName, lastAt:now(), chat:[] }; biz.messages.push(thread); }
-  thread.chat.push({from:'store', text:`Here's your receipt for order ${o.id.toUpperCase()}: total ${money(o.total)}. Thank you for shopping with us!`, at:now()});
+  thread.chat.push({ from:'store', type:'file', fileName:`receipt-${o.id}.pdf`, dataUrl, text:`Here's your receipt for order ${o.id.toUpperCase()}: total ${money(o.total)}. Thank you for shopping with us!`, at:now() });
   thread.lastAt = now();
   logAction(biz, `Sent receipt for ${o.id.toUpperCase()} to ${o.customerName}`);
-  toast('Receipt sent via messages', 'success');
+  toast('Receipt sent instantly via messages', 'success');
   persistAndRender();
 }
 
@@ -1025,7 +1314,7 @@ function pageCustomers(biz){
   const customers = Object.values(map).sort((a,b)=>b.last-a.last);
   return `
   ${pageHeader('Customers', 'Wiesel users who have purchased from your store.')}
-  ${card(customers.length? `<div class="w-full overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
+  ${card(customers.length? `<div class="w-full table-scroll overflow-x-auto"><table class="min-w-[720px] w-full text-sm"><thead><tr class="text-left text-neutral-400 border-b border-neutral-200">
     <th class="px-5 py-3 font-medium">Customer</th><th class="px-5 py-3 font-medium">Orders</th><th class="px-5 py-3 font-medium">Total spent</th><th class="px-5 py-3 font-medium">Last order</th></tr></thead>
     <tbody>${customers.map(c=>`<tr class="border-b border-neutral-100 last:border-0">
       <td class="px-5 py-3 flex items-center gap-3"><div class="w-7 h-7 rounded-full bg-neutral-100 text-xs flex items-center justify-center font-semibold">${initials(c.name)}</div>${c.name}</td>
@@ -1156,19 +1445,23 @@ function roundRect(ctx, x, y, w, h, r){
   ctx.closePath();
 }
 function drawPin(ctx, x, y, size, color){
-  const r = size * 0.26;
   ctx.save();
-  ctx.fillStyle = color;
+  ctx.translate(x, y);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.lineWidth = Math.max(2, size * 0.11);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Lucide-style map pin outline
   ctx.beginPath();
-  ctx.moveTo(x, y + size * 0.48);
-  ctx.bezierCurveTo(x - size * 0.34, y + size * 0.12, x - size * 0.26, y - size * 0.18, x, y - size * 0.18);
-  ctx.bezierCurveTo(x + size * 0.26, y - size * 0.18, x + size * 0.34, y + size * 0.12, x, y + size * 0.48);
+  ctx.moveTo(0, size * 0.46);
+  ctx.bezierCurveTo(-size * 0.34, size * 0.18, -size * 0.33, -size * 0.16, 0, -size * 0.18);
+  ctx.bezierCurveTo(size * 0.33, -size * 0.16, size * 0.34, size * 0.18, 0, size * 0.46);
   ctx.closePath();
-  ctx.fill();
+  ctx.stroke();
   ctx.beginPath();
-  ctx.arc(x, y + size * 0.04, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#0A0A0B';
-  ctx.fill();
+  ctx.arc(0, -size * 0.01, size * 0.18, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 function wrapCenteredText(ctx, text, cx, y, maxWidth, lineHeight, maxLines){
@@ -1198,7 +1491,7 @@ async function buildFlyerCanvas(biz, scale=1){
   const secondary = biz.branding.secondary || '#16A34A';
   const panelDark = mixHex(primary, '#08090C', 0.76);
   const panelMid = mixHex(primary, '#111318', 0.58);
-  const textSoft = '#D1D5DB';
+  const textSoft = '#E5E7EB';
 
   // background
   const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -1246,7 +1539,7 @@ async function buildFlyerCanvas(biz, scale=1){
   ctx.restore();
 
   // top content card
-  const cardX = 44 * scale, cardY = 40 * scale, cardW = W - 88 * scale, cardH = H * 0.305;
+  const cardX = 44 * scale, cardY = 40 * scale, cardW = W - 88 * scale, cardH = H * 0.24;
   ctx.save();
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   roundRect(ctx, cardX, cardY, cardW, cardH, 40 * scale);
@@ -1257,48 +1550,38 @@ async function buildFlyerCanvas(biz, scale=1){
   ctx.stroke();
   ctx.restore();
 
-  // accent strip and small badge
+  // accent strip
   ctx.fillStyle = secondary;
-  roundRect(ctx, 62 * scale, 64 * scale, 12 * scale, cardH - 40 * scale, 8 * scale);
+  roundRect(ctx, 62 * scale, cardY + 24 * scale, 12 * scale, cardH - 48 * scale, 8 * scale);
   ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  roundRect(ctx, W - 170 * scale, 66 * scale, 106 * scale, 34 * scale, 999 * scale);
-  ctx.fill();
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `800 ${16 * scale}px Inter, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText('WIESEL STORE', W - 117 * scale, 89 * scale);
 
-  const upperName = (biz.businessName || 'WIESEL STORE').toUpperCase();
+  // brand name, beautifully centered in the card
+  const upperName = biz.businessName || 'Wiesel Store';
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'center';
-  let nameSize = 88 * scale;
+  let nameSize = 104 * scale;
   ctx.font = `900 ${nameSize}px 'Space Grotesk', sans-serif`;
-  while(ctx.measureText(upperName).width > W * 0.80 && nameSize > 38 * scale){
+  while(ctx.measureText(upperName).width > W * 0.78 && nameSize > 42 * scale){
     nameSize -= 2 * scale;
     ctx.font = `900 ${nameSize}px 'Space Grotesk', sans-serif`;
   }
-  ctx.fillText(upperName, W / 2, 150 * scale);
+  const nameY = cardY + cardH * 0.44;
+  ctx.fillText(upperName, W / 2, nameY);
 
-  ctx.fillStyle = '#E5E7EB';
-  ctx.font = `700 ${30 * scale}px 'Inter', sans-serif`;
-  ctx.globalAlpha = 0.98;
-  wrapCenteredText(ctx, (biz.branding.bannerText || 'PREMIUM SHOPPING, MADE SIMPLE').toUpperCase(), W / 2, 216 * scale, W * 0.74, 36 * scale, 2);
-
-  // location line with Lucide-style pin
-  const address = (biz.profile?.address || 'STORE ADDRESS NOT SET').toUpperCase();
-  const locY = 278 * scale;
-  ctx.font = `700 ${24 * scale}px 'Inter', sans-serif`;
+  // address line with location pin, directly beneath the brand name
+  const address = (biz.profile?.address || 'Store address not set');
+  const locY = nameY + 62 * scale;
+  ctx.font = `600 ${26 * scale}px 'Inter', sans-serif`;
   const addrWidth = ctx.measureText(address).width;
-  const total = addrWidth + 30 * scale + 14 * scale;
+  const total = addrWidth + 36 * scale;
   const startX = W / 2 - total / 2;
-  drawPin(ctx, startX + 14 * scale, locY - 6 * scale, 22 * scale, secondary);
+  drawPin(ctx, startX + 14 * scale, locY - 7 * scale, 24 * scale, secondary);
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#F3F4F6';
-  ctx.fillText(address, startX + 30 * scale, locY);
+  ctx.fillStyle = '#E5E7EB';
+  ctx.fillText(address, startX + 34 * scale, locY);
 
   // QR display card
-  const qrSize = W * 0.43;
+  const qrSize = W * 0.42;
   const qrX = (W - qrSize) / 2;
   const qrY = H * 0.355;
   ctx.save();
@@ -1359,30 +1642,30 @@ async function buildFlyerCanvas(biz, scale=1){
   let cy = qrY + qrSize + 110 * scale;
   ctx.fillStyle = '#FFFFFF';
   ctx.textAlign = 'center';
-  ctx.font = `900 ${54 * scale}px 'Space Grotesk', sans-serif`;
-  ctx.fillText('SCAN TO SHOP', W / 2, cy);
+  ctx.font = `900 ${60 * scale}px 'Space Grotesk', sans-serif`;
+  ctx.fillText('Scan to shop', W / 2, cy);
 
-  cy += 64 * scale;
+  cy += 66 * scale;
   ctx.fillStyle = textSoft;
-  ctx.font = `700 ${28 * scale}px 'Inter', sans-serif`;
+  ctx.font = `700 ${30 * scale}px 'Inter', sans-serif`;
   ctx.fillText('Open your store instantly and browse products', W / 2, cy);
 
-  cy += 52 * scale;
+  cy += 56 * scale;
   ctx.fillStyle = secondary;
-  ctx.font = `900 ${38 * scale}px 'Space Grotesk', sans-serif`;
-  ctx.fillText((biz.businessName || 'WIESEL STORE').toUpperCase(), W / 2, cy);
+  ctx.font = `900 ${42 * scale}px 'Space Grotesk', sans-serif`;
+  ctx.fillText(biz.businessName || 'Wiesel Store', W / 2, cy);
 
   // footer glow + tiny badges
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 2 * scale;
   ctx.beginPath();
   ctx.moveTo(W * 0.14, H * 0.92);
   ctx.lineTo(W * 0.86, H * 0.92);
   ctx.stroke();
-  ctx.fillStyle = '#9CA3AF';
-  ctx.font = `700 ${22 * scale}px 'Inter', sans-serif`;
-  ctx.fillText('POWERED BY WIESEL', W / 2, H * 0.956);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = `700 ${26 * scale}px 'Inter', sans-serif`;
+  ctx.fillText('Powered by Wiesel', W / 2, H * 0.958);
   ctx.restore();
 
   return canvas;
@@ -1403,11 +1686,20 @@ async function downloadFlyer(){
   const biz = currentBiz();
   if(!biz) return;
   const canvas = await buildFlyerCanvas(biz, 3);
+  const pdfLib = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : null;
+  if(pdfLib){
+    const pdf = new pdfLib({ orientation: 'portrait', unit: 'pt', format: [595.28, 841.89], compress: true });
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    pdf.addImage(imgData, 'PNG', 0, 0, 595.28, 841.89);
+    pdf.save(`${biz.slug || 'store'}-wiesel-flyer.pdf`);
+    toast('Flyer downloaded as PDF', 'success');
+    return;
+  }
   const link = document.createElement('a');
   link.download = `${biz.slug || 'store'}-wiesel-flyer.png`;
   link.href = canvas.toDataURL('image/png', 1.0);
   link.click();
-  toast('Flyer downloaded — ready to print', 'success');
+  toast('PDF tool unavailable, downloaded PNG instead', 'info');
 }
 
 function pageProducts(biz){
@@ -1549,11 +1841,14 @@ function productForm(biz, p){
 }
 async function handleSlotImage(e, idx){
   const f = e.target.files[0]; if(!f) return;
-  const dataUrl = await fileToCompressedDataURL(f, 1600, 0.9);
-  state.tempImages[idx] = dataUrl;
-  const slot = document.getElementById('imgSlot'+idx);
-  if(slot) slot.innerHTML = imageSlotHTML(idx, dataUrl);
-  refreshIcons();
+  fileToCompressedDataURL(f, 900, 0.62).then((dataUrl)=>{
+    state.tempImages[idx] = dataUrl;
+    const slot = document.getElementById('imgSlot'+idx);
+    if(slot) slot.innerHTML = imageSlotHTML(idx, dataUrl);
+    refreshIcons();
+  }).catch(()=>{
+    toast('Could not read that image. Please try another file.', 'error');
+  });
 }
 function removeSlotImage(idx){
   state.tempImages[idx] = null;
@@ -1562,47 +1857,43 @@ function removeSlotImage(idx){
 }
 function saveProduct(e, id){
   e.preventDefault();
-  const biz = currentBiz();
-  const f = new FormData(e.target);
-  const images = (state.tempImages||[]).filter(Boolean);
+  const biz = currentBiz(); const f = new FormData(e.target);
+  // Save only the cover image to keep storage usage small and stable.
+  const images = (state.tempImages||[]).filter(Boolean).slice(0, 1);
   if(images.length===0){ toast('Add at least 1 product photo', 'error'); return false; }
   const category = f.get('category');
   if(!category){ toast('Select or create a category for this product', 'error'); return false; }
-
   const btn = document.getElementById('saveProductBtn');
   const oldLabel = btn?.innerHTML || '';
   if(btn){ btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> Saving...`; }
-
   try{
-    const data = {
-      name: f.get('name'),
-      price: parseFloat(f.get('price')),
-      description: f.get('description'),
-      available: f.get('available') === 'on',
-      images,
-      category
-    };
-
-    if(id){
-      const product = biz.products.find(p=>p.id===id);
-      if(!product) throw new Error('Product not found');
-      Object.assign(product, data);
-      logAction(biz, `Updated product "${data.name}"`);
-    } else {
-      biz.products.unshift({ id: uid('prod'), ...data });
-      logAction(biz, `Added product "${data.name}"`);
-    }
-
+    const data = { name: f.get('name'), price: parseFloat(f.get('price')), description: f.get('description'), available: f.get('available')==='on', images, category };
+    if(id){ Object.assign(biz.products.find(p=>p.id===id), data); logAction(biz, `Updated product "${data.name}"`); }
+    else { biz.products.push({ id: uid('prod'), ...data }); logAction(biz, `Added product "${data.name}"`); }
+    sanitizeBusinessStorage(db);
     saveDB(db);
     toast('Product saved', 'success');
     state.editingProduct = null;
     state.tempImages = null;
-
-    requestAnimationFrame(()=>{ render(); });
+    const mount = document.getElementById('productFormMount');
+    if(mount) mount.innerHTML = '';
+    const grid = document.getElementById('productGrid');
+    if(grid) grid.innerHTML = productGridHTML(biz);
+    refreshIcons();
+    render();
+    return false;
   } catch(err){
-    console.error(err);
-    const msg = String(err && err.message || '');
-    toast(msg.includes('Storage limit') ? 'Image storage is full. Smaller/compressed photos are used now, but you may need to replace very large old images.' : 'Could not save product. Please try again.', 'error');
+    // If the browser is already near quota, trim existing stored product images and retry once.
+    try{
+      sanitizeBusinessStorage(db);
+      saveDB(db);
+      toast('Storage was tight, so the product image was optimized and saved.', 'info');
+      state.editingProduct = null;
+      state.tempImages = null;
+      render();
+    } catch(e2){
+      toast('Images storage is full. Remove some older products or use fewer product photos.', 'error');
+    }
   } finally {
     if(btn){ btn.disabled = false; btn.innerHTML = oldLabel || 'Save product'; }
   }
@@ -1874,7 +2165,7 @@ function simulateOrderSilent(biz){
     items, total, status: completed?'completed':'pending', createdAt:t, paidAt: completed?t:null, deliveryCode: Math.random().toString(36).slice(2,10).toUpperCase() });
 }
 function simulateMessageSilent(biz){
-  biz.messages.push({ id: uid('msg'), customerName:'Adaeze Okonkwo', lastAt: now(), chat:[{from:'customer', text:'Hi, is the Ankara dress still available in medium?', at: now()}] });
+  biz.messages.push({ id: uid('msg'), customerName:'Adaeze Okonkwo', lastAt: now(), chat:[{from:'customer', type:'text', text:'Hi, is the Ankara dress still available in medium?', at: now()}] });
 }
 
 /* ================= CONNECTIVITY GUARD ================= */
@@ -1918,6 +2209,7 @@ function render(){
   }
 }
 if(state.bizId && !location.hash.startsWith('#/dashboard')) location.hash = '#/dashboard/overview';
+if(db && db.businesses) sanitizeBusinessStorage(db);
 render();
 </script>
 </body>
